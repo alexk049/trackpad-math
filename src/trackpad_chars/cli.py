@@ -10,7 +10,6 @@ from trackpad_chars.recorder import recorder
 from trackpad_chars.model import SymbolClassifier
 
 app = typer.Typer()
-# classifier = SymbolClassifier() # Instantiated per command now
 
 @app.command()
 def init():
@@ -108,7 +107,10 @@ def train(model: str = typer.Option("knn", "--model", "-m", help="Model type: kn
     typer.echo(f"Training complete. Model saved to {classifier.model_path}.")
 
 @app.command()
-def predict(model: str = typer.Option("knn", "--model", "-m", help="Model type: knn, rf, dtw")):
+def predict(
+    model: str = typer.Option("knn", "--model", "-m", help="Model type: knn, rf, dtw"),
+    feedback: bool = typer.Option(False, "--feedback", "-f", help="Enable feedback loop to improve model")
+):
     """
     Start a prediction session. Draw and get real-time prediction.
     """
@@ -119,6 +121,9 @@ def predict(model: str = typer.Option("knn", "--model", "-m", help="Model type: 
         return
 
     typer.echo(f"PREDICTION MODE ({model.upper()})")
+    if feedback:
+        typer.echo("FEEDBACK MODE ENABLED: You will be asked to verify predictions.")
+        
     typer.echo("Press SPACE to START recording. Press SPACE again to STOP.")
     typer.echo("Press Ctrl+C to exit.")
     
@@ -150,6 +155,33 @@ def predict(model: str = typer.Option("knn", "--model", "-m", help="Model type: 
                 for alt_pred, alt_conf in predictions[1:]:
                     if alt_conf > 0:
                          typer.echo(f"- {alt_pred}: {alt_conf:.2f}")
+            
+            if feedback:
+                # Ask for feedback
+                user_input = typer.prompt(f"Is '{pred}' correct? [y/n/CORRECT_LABEL]", default="y")
+                correct_label = None
+                
+                if user_input.lower() in ('y', 'yes'):
+                    correct_label = pred
+                    # Optional: We could reinforce here too, but maybe overkill? 
+                    # Let's reinforce positive feedback too!
+                    typer.echo("Good! Reinforcing model...")
+                elif user_input.lower() in ('n', 'no'):
+                    correct_label = typer.prompt("What is the correct label?")
+                else:
+                    # User typed the label directly
+                    correct_label = user_input
+                
+                if correct_label:
+                    # Save to DB
+                    db = next(get_db())
+                    drawing = Drawing(label=correct_label, strokes=strokes)
+                    db.add(drawing)
+                    db.commit()
+                    
+                    # Update model
+                    classifier.add_example(strokes, correct_label)
+                    typer.echo(f"Saved example for '{correct_label}' and updated model.")
             
         except KeyboardInterrupt:
             typer.echo("\nExiting prediction mode.")

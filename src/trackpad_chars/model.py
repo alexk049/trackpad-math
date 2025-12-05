@@ -158,6 +158,57 @@ class SymbolClassifier:
         
         return results
 
+    def add_example(self, strokes: List[List[Dict[str, float]]], label: str):
+        """
+        Incrementally update the model with a new example.
+        Only supported for clean 'instance-based' models like KNN and DTW.
+        """
+        if self.model_type == "rf":
+            print("Warning: Random Forest does not support incremental updates. Training required.")
+            return
+
+        if self.model_type == "dtw":
+            # Just append to templates
+            norm_strokes = normalize(strokes)
+            resampled = resample_drawing(norm_strokes, points_per_stroke=20)
+            points = []
+            for stroke in resampled:
+                for p in stroke:
+                    points.append([p['x'], p['y']])
+            if not points: 
+                points = [[0.0, 0.0]]
+            
+            self.model["templates"].append(np.array(points))
+            self.model["labels"].append(label)
+            self.save()
+            return
+            
+        if self.model_type == "knn":
+            # For KNN, we need to add to the existing training set.
+            # Sklearn's KNN stores data in _fit_X and encoded labels in _y.
+            
+            new_features = extract_features(strokes).reshape(1, -1)
+            
+            if hasattr(self.model, "_fit_X") and self.model._fit_X is not None and hasattr(self.model, "_y"):
+                X = np.vstack([self.model._fit_X, new_features])
+                
+                # Decode existing labels
+                # self.model._y are indices into self.model.classes_
+                if hasattr(self.model, "classes_"):
+                    decoded_y = self.model.classes_[self.model._y]
+                    y = np.append(decoded_y, label)
+                else:
+                    # Fallback if classes_ missing (shouldn't happen for trained model)
+                    y = np.append(self.model._y, label)
+            else:
+                # First example?
+                X = new_features
+                y = np.array([label])
+            
+            self.model.fit(X, y)
+            self.is_trained = True
+            self.save()
+
     def save(self):
         with open(self.model_path, 'wb') as f:
             pickle.dump(self.model, f)
