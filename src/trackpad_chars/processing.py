@@ -112,6 +112,25 @@ def extract_features(strokes: List[List[Dict[str, float]]]) -> np.ndarray:
     Let's go with a simplified approach:
     Flatten all resampled strokes into one sequence of (x,y) coordinates.
     """
+    # Calculate global features before normalization
+    num_strokes = float(len(strokes))
+    
+    # Calculate aspect ratio
+    all_points = []
+    for stroke in strokes:
+        for p in stroke:
+            all_points.append([p['x'], p['y']])
+            
+    if all_points:
+        arr = np.array(all_points)
+        min_vals = np.min(arr, axis=0)
+        max_vals = np.max(arr, axis=0)
+        width = max_vals[0] - min_vals[0]
+        height = max_vals[1] - min_vals[1]
+        aspect_ratio = width / height if height > 0 else 0.0
+    else:
+        aspect_ratio = 0.0
+
     # Normalize first
     norm_strokes = normalize(strokes)
     # Resample
@@ -136,5 +155,9 @@ def extract_features(strokes: List[List[Dict[str, float]]]) -> np.ndarray:
         else:
             # Pad with zeros
             features.extend([0.0] * (POINTS * 2))
+            
+    # Append global features
+    features.append(num_strokes)
+    features.append(aspect_ratio)
             
     return np.array(features)

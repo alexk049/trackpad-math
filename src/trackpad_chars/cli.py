@@ -10,7 +10,7 @@ from trackpad_chars.recorder import recorder
 from trackpad_chars.model import SymbolClassifier
 
 app = typer.Typer()
-classifier = SymbolClassifier()
+# classifier = SymbolClassifier() # Instantiated per command now
 
 @app.command()
 def init():
@@ -92,7 +92,7 @@ def delete(label: str, force: bool = typer.Option(False, "--force", "-f", help="
     typer.echo(f"Deleted {count} drawings for label '{label}'.")
 
 @app.command()
-def train():
+def train(model: str = typer.Option("knn", "--model", "-m", help="Model type: knn, rf, dtw")):
     """Train the model on all data in the database."""
     db = next(get_db())
     drawings = db.query(Drawing).all()
@@ -101,24 +101,24 @@ def train():
         typer.echo("No drawings found to train on.")
         return
 
-    typer.echo(f"Training on {len(drawings)} samples...")
-    # Extract strokes and labels
-    # We pass the Drawing objects directly as model expect that interface or we adapt
-    # The model implementation I wrote earlier expects objects with .strokes attribute or similar
+    typer.echo(f"Training {model.upper()} model on {len(drawings)} samples...")
+    
+    classifier = SymbolClassifier(model_type=model)
     classifier.train(drawings, [d.label for d in drawings])
-    typer.echo("Training complete. Model saved.")
+    typer.echo(f"Training complete. Model saved to {classifier.model_path}.")
 
 @app.command()
-def predict():
+def predict(model: str = typer.Option("knn", "--model", "-m", help="Model type: knn, rf, dtw")):
     """
     Start a prediction session. Draw and get real-time prediction.
     """
+    classifier = SymbolClassifier(model_type=model)
+    
     if not classifier.load():
-        typer.echo("Model not found. Please train first.")
-        # We can allow running if we train on the fly? No.
+        typer.echo(f"Model {model} not found. Please train first: trackpad-chars train --model {model}")
         return
 
-    typer.echo("PREDICTION MODE")
+    typer.echo(f"PREDICTION MODE ({model.upper()})")
     typer.echo("Press SPACE to START recording. Press SPACE again to STOP.")
     typer.echo("Press Ctrl+C to exit.")
     
@@ -135,8 +135,21 @@ def predict():
                 typer.echo("No strokes.")
                 continue
                 
-            pred, conf = classifier.predict(strokes)
-            typer.echo(f"PREDICTION: {pred} (Conf: {conf:.2f})")
+            predictions = classifier.predict(strokes)
+            
+            if not predictions:
+                typer.echo("No predictions returned.")
+                continue
+                
+            pred, conf = predictions[0]
+            
+            typer.echo(f"PREDICTION: {pred} (Score: {conf:.2f})")
+            
+            if len(predictions) > 1:
+                typer.echo("Alternatives:")
+                for alt_pred, alt_conf in predictions[1:]:
+                    if alt_conf > 0:
+                         typer.echo(f"- {alt_pred}: {alt_conf:.2f}")
             
         except KeyboardInterrupt:
             typer.echo("\nExiting prediction mode.")
