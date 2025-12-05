@@ -1,0 +1,25 @@
+[project]
+name = "trackpad-chars"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastdtw>=0.3.4",
+    "numpy>=2.3.5",
+    "psycopg[binary]>=3.3.1",
+    "pynput>=1.8.1",
+    "python-dotenv>=1.2.1",
+    "scikit-learn>=1.7.2",
+    "sqlalchemy>=2.0.44",
+    "typer>=0.20.0",
+    "streamlit>=1.32.0",
+    "matplotlib>=3.8.0",
+    "pandas>=2.2.0",
+]
+
+[project.scripts]
+trackpad-chars = "trackpad_chars.cli:app"
+
+[tool.uv]
+package = true
