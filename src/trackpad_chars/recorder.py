@@ -23,10 +23,11 @@ class DrawingRecorder:
         self.listener: Optional[mouse.Listener] = None
         self.start_time = 0.0
         self.last_move_time = 0.0
-        # Time gap to consider a new stroke (e.g. 0.3s pause)
+        # Time gap to consider a new stroke (e.3. 0.3s pause)
         self.stroke_gap_threshold = 0.3 
         self._lock = threading.Lock()
         self._initialized = True
+        self._resetting = False
 
     def start(self):
         with self._lock:
@@ -37,6 +38,7 @@ class DrawingRecorder:
             self.is_recording = True
             self.start_time = time.time()
             self.last_move_time = self.start_time
+            self._resetting = False
             
             # Non-blocking listener
             self.listener = mouse.Listener(on_move=self._on_move)
@@ -59,6 +61,9 @@ class DrawingRecorder:
 
     def _on_move(self, x, y):
         if not self.is_recording:
+            return
+            
+        if self._resetting:
             return
 
         now = time.time()
@@ -87,6 +92,7 @@ class DrawingRecorder:
         """
         Reset the cursor position to the middle of the screen, near the top.
         """
+        self._resetting = True
         try:
             # Get screen resolution using xrandr
             output = subprocess.check_output('xrandr').decode()
@@ -104,9 +110,53 @@ class DrawingRecorder:
                 mouse_controller = mouse.Controller()
                 mouse_controller.position = (target_x, target_y)
                 
+                # Allow time for event to propagate and be ignored
+                time.sleep(0.05)
+                
         except Exception as e:
             # Fail silently or log if needed, avoiding crash on drawing logic
             print(f"Warning: Could not reset cursor: {e}")
+        finally:
+            self._resetting = False
+            with self._lock:
+                self.current_stroke = []
+                self.last_move_time = time.time()
+
+    def pop_if_timeout(self, timeout: float) -> Optional[List[List[Dict[str, float]]]]:
+        """
+        Check if the last movement was longer than 'timeout' seconds ago.
+        If yes, and we have recorded strokes, return them and clear the buffer.
+        """
+        if not self.is_recording:
+             return None
+
+        with self._lock:
+            # If we haven't even started moving since start(), ignore
+            if not self.strokes and not self.current_stroke:
+                 return None
+
+            elapsed = time.time() - self.last_move_time
+            if elapsed > timeout:
+                # Capture current state
+                
+                # Close current stroke if any
+                if self.current_stroke:
+                    self.strokes.append(self.current_stroke)
+                    self.current_stroke = []
+                
+                if not self.strokes:
+                    return None
+                    
+                result = self.strokes
+                # Reset buffers but KEEP recording
+                self.strokes = []
+                # Also reset start_time for next char to keep timestamps relative? 
+                # Actually, classifier uses relative time or normalized. But keeping t small is good.
+                self.start_time = time.time() 
+                self.last_move_time = self.start_time
+                
+                return result
+        return None
 
 
 recorder = DrawingRecorder()

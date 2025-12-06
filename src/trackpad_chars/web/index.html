@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trackpad Chars Math Editor</title>
+
+    <!-- MathLive SDK -->
+    <script defer src="//unpkg.com/mathlive"></script>
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Math Editor</h1>
+            <div class="controls">
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="auto-mode-check"> Auto Draw
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label for="pause-slider" style="font-size: 0.9rem;">Auto Pause:</label>
+                    <input type="range" id="pause-slider" min="100" max="3000" step="100" value="1000">
+                    <span id="pause-val"
+                        style="font-size: 0.8rem; font-weight: bold; width: 40px; display: inline-block;">1000ms</span>
+                </div>
+
+                <div class="control-group" style="padding-left: 10px; border-left: 1px solid #444;">
+                    <label for="sensitivity-slider" style="font-size: 0.9rem;">Scroll:</label>
+                    <input type="range" id="sensitivity-slider" min="1" max="20" value="15"
+                        title="Higher is more sensitive">
+                </div>
+
+                <button id="record-btn" title="Toggle Recording (Space)">Start Rec</button>
+                <button id="copy-btn">Copy LaTeX</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Equation Editor -->
+            <div class="editor-container">
+                <math-field id="mf" virtual-keyboard-mode="auto">
+                    x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
+                </math-field>
+                <div class="instruction">
+                    Scroll UP/DOWN/LEFT/RIGHT to navigate cursor.
+                </div>
+            </div>
+
+            <!-- Status / Interaction Area -->
+            <div class="status-container">
+                <div id="status-indicator">Ready</div>
+                <div class="instruction-large">
+                    Press <strong>SPACE</strong> to Record Symbol
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
