@@ -265,7 +265,7 @@ async function toggleRecording() {
             recordBtn.innerHTML = 'Stop Recording [space]';
 
             if (optAutoDraw.checked) {
-                autoDrawInterval = setInterval(pollRecording, 200);
+                autoDrawInterval = setInterval(pollRecording, 100);
             }
         } else if (data.status === 'finished') {
             handleFinished(data);
