@@ -6,13 +6,21 @@ from pydantic import BaseModel
 from typing import Optional
 import uvicorn
 
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+
 from trackpad_chars.model import SymbolClassifier
 from trackpad_chars.recorder import recorder
+from trackpad_chars.db import get_db, Drawing, init_db
+from fastapi import Depends
 
 app = FastAPI(title="Trackpad Chars")
 
 # Path to web assets
 WEB_DIR = os.path.join(os.path.dirname(__file__), "web")
+
+# Initialize DB
+init_db()
 
 # Load model globally
 classifier = SymbolClassifier(model_type="knn") 
@@ -23,6 +31,7 @@ class ToggleResponse(BaseModel):
     status: str
     symbol: Optional[str] = None
     confidence: Optional[float] = None
+    candidates: Optional[list] = None
     message: Optional[str] = None
 
 @app.get("/status")
@@ -68,6 +77,7 @@ def poll_recording():
              return {"status": "idle", "message": "No prediction"}
              
         pred, conf = predictions[0]
+        candidates = [{"symbol": p[0], "confidence": p[1]} for p in predictions[:5]]
         
         # Reset cursor for NEXT symbol
         recorder.reset_cursor()
@@ -75,7 +85,8 @@ def poll_recording():
         return {
             "status": "finished",
             "symbol": pred,
-            "confidence": conf
+            "confidence": conf,
+            "candidates": candidates
         }
     
     return {"status": "recording"}
@@ -114,14 +125,97 @@ def toggle_recording():
              return {"status": "idle", "message": "No prediction"}
              
         pred, conf = predictions[0]
+        candidates = [{"symbol": p[0], "confidence": p[1]} for p in predictions[:5]]
         return {
             "status": "finished",
             "symbol": pred,
-            "confidence": conf
+            "confidence": conf,
+            "candidates": candidates
         }
+
+
+# --- Data API ---
+
+@app.get("/api/labels")
+def get_labels(db: Session = Depends(get_db)):
+    """Get all unique labels and their counts."""
+    # Query: SELECT label, COUNT(*) FROM drawings GROUP BY label
+    results = db.query(Drawing.label, func.count(Drawing.id)).group_by(Drawing.label).all()
+    # Format: [{"label": "A", "count": 10}, ...]
+    return [{"label": r[0], "count": r[1]} for r in results]
+
+@app.get("/api/drawings")
+def get_drawings(label: Optional[str] = None, db: Session = Depends(get_db)):
+    """Get list of drawings, optionally filtered by label."""
+    q = db.query(Drawing)
+    if label:
+        q = q.filter(Drawing.label == label)
+    # Return basic info (exclude heavy strokes if list is huge? For now include all)
+    drawings = q.order_by(Drawing.timestamp.desc()).limit(100).all()
+    return drawings
+
+@app.get("/api/drawings/{id}")
+def get_drawing(id: str, db: Session = Depends(get_db)):
+    d = db.query(Drawing).filter(Drawing.id == id).first()
+    if not d:
+        raise HTTPException(status_code=404, detail="Drawing not found")
+    return d
+
+@app.delete("/api/drawings/{id}")
+def delete_drawing(id: str, db: Session = Depends(get_db)):
+    d = db.query(Drawing).filter(Drawing.id == id).first()
+    if not d:
+        raise HTTPException(status_code=404, detail="Drawing not found")
+    db.delete(d)
+    db.commit()
+    
+    # Reload model if dynamic? For KNN we might want to reload or just let it be lazy.
+    # Ideally, we should retrain.
+    return {"status": "deleted"}
+
+class TeachRequest(BaseModel):
+    label: str
+    strokes: Optional[list] = None # If None, use last recorded strokes
+
+@app.post("/api/teach")
+def teach_symbol(req: TeachRequest, db: Session = Depends(get_db)):
+    """
+    Save strokes as a specific label. 
+    If strokes provided, use them. Else use recorder.last_strokes.
+    """
+    strokes_to_save = req.strokes
+    # We need to expose last_strokes from recorder if we want to use "last recorded"
+    # Assuming recorder has `last_strokes` property or we just pass it from frontend.
+    # Frontend logic is safer: Frontend holds the strokes it just received from poll.
+    
+    if not strokes_to_save:
+         raise HTTPException(status_code=400, detail="No strokes provided")
+
+    new_drawing = Drawing(
+        label=req.label,
+        strokes=strokes_to_save
+    )
+    db.add(new_drawing)
+    db.commit()
+    
+    # Incremental train for KNN?
+    # classifier.add_sample(req.label, strokes_to_save) # If supported
+    # For now, let's just trigger a reload or acknowledge save.
+    
+    return {"status": "saved", "id": str(new_drawing.id)}
+
+@app.post("/api/retrain")
+def retrain_model():
+    """Force model reload/retrain from DB."""
+    # Logic to dump DB to files or train directly from DB
+    # straightforward for KNN: just need to rebuild X, y from DB.
+    # NOT IMPLEMENTED FULLY here, but placeholder.
+    # Ideally: classifier.train_from_db(db_session)
+    return {"status": "not_implemented_yet"}
 
 # Mount static files for the frontend
 app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="static")
+
 
 def start():
     """Entry point for uv run"""
