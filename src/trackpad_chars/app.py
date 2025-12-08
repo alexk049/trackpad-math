@@ -86,7 +86,8 @@ def poll_recording():
             "status": "finished",
             "symbol": pred,
             "confidence": conf,
-            "candidates": candidates
+            "candidates": candidates,
+            "strokes": strokes
         }
     
     return {"status": "recording"}
@@ -130,7 +131,8 @@ def toggle_recording():
             "status": "finished",
             "symbol": pred,
             "confidence": conf,
-            "candidates": candidates
+            "candidates": candidates,
+            "strokes": strokes
         }
 
 
@@ -180,13 +182,10 @@ class TeachRequest(BaseModel):
 @app.post("/api/teach")
 def teach_symbol(req: TeachRequest, db: Session = Depends(get_db)):
     """
-    Save strokes as a specific label. 
+    Save strokes as a specific label and incrementally update the model.
     If strokes provided, use them. Else use recorder.last_strokes.
     """
     strokes_to_save = req.strokes
-    # We need to expose last_strokes from recorder if we want to use "last recorded"
-    # Assuming recorder has `last_strokes` property or we just pass it from frontend.
-    # Frontend logic is safer: Frontend holds the strokes it just received from poll.
     
     if not strokes_to_save:
          raise HTTPException(status_code=400, detail="No strokes provided")
@@ -198,11 +197,15 @@ def teach_symbol(req: TeachRequest, db: Session = Depends(get_db)):
     db.add(new_drawing)
     db.commit()
     
-    # Incremental train for KNN?
-    # classifier.add_sample(req.label, strokes_to_save) # If supported
-    # For now, let's just trigger a reload or acknowledge save.
+    # Incrementally update the model with the new example
+    try:
+        classifier.add_example(strokes_to_save, req.label)
+        model_updated = True
+    except Exception as e:
+        print(f"Warning: Could not update model incrementally: {e}")
+        model_updated = False
     
-    return {"status": "saved", "id": str(new_drawing.id)}
+    return {"status": "saved", "id": str(new_drawing.id), "model_updated": model_updated}
 
 @app.post("/api/retrain")
 def retrain_model():

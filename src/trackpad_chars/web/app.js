@@ -52,44 +52,101 @@ window.addEventListener('DOMContentLoaded', () => {
         window.mathVirtualKeyboard.show();
     }
 
-    // Load saved theme preference
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-        document.getElementById('theme-icon').className = 'fa-solid fa-sun';
-    }
+    // Load and apply saved theme preference
+    const savedTheme = localStorage.getItem('theme') || 'system';
+    applyTheme(savedTheme);
+    updateThemeButtons(savedTheme);
 
     // Initial fetch of settings? (If we had a GET endpoint)
     // For now request settings defaults or just use local defaults
     updateSettings(); // Push defaults to backend
 });
 
-// --- Theme Toggle ---
-document.getElementById('theme-toggle').addEventListener('click', () => {
+// --- Theme System ---
+function applyTheme(theme) {
     const body = document.body;
     const icon = document.getElementById('theme-icon');
 
-    body.classList.toggle('dark-mode');
+    // Remove existing dark mode
+    body.classList.remove('dark-mode');
 
-    if (body.classList.contains('dark-mode')) {
+    let isDark = false;
+
+    if (theme === 'dark') {
+        isDark = true;
+    } else if (theme === 'system') {
+        isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    // 'light' leaves isDark as false
+
+    if (isDark) {
+        body.classList.add('dark-mode');
         icon.className = 'fa-solid fa-sun';
-        localStorage.setItem('theme', 'dark');
     } else {
         icon.className = 'fa-solid fa-moon';
-        localStorage.setItem('theme', 'light');
+    }
+}
+
+function updateThemeButtons(activeTheme) {
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.theme === activeTheme) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+// Theme toggle in header (cycles: light -> dark -> system)
+document.getElementById('theme-toggle').addEventListener('click', () => {
+    const currentTheme = localStorage.getItem('theme') || 'system';
+    let newTheme = 'light';
+
+    if (currentTheme === 'light') newTheme = 'dark';
+    else if (currentTheme === 'dark') newTheme = 'system';
+    else newTheme = 'light';
+
+    localStorage.setItem('theme', newTheme);
+    applyTheme(newTheme);
+    updateThemeButtons(newTheme);
+});
+
+// Theme buttons in settings
+document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const theme = btn.dataset.theme;
+        localStorage.setItem('theme', theme);
+        applyTheme(theme);
+        updateThemeButtons(theme);
+    });
+});
+
+// Listen for system theme changes
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    const currentTheme = localStorage.getItem('theme') || 'system';
+    if (currentTheme === 'system') {
+        applyTheme('system');
     }
 });
 
 // --- Settings Modal Logic ---
 settingsBtn.addEventListener('click', () => {
     settingsModal.classList.remove('hidden');
-    setTimeout(() => settingsModal.classList.add('visible'), 10);
+    settingsModal.classList.add('visible');
     fetchLabels();
 });
 
-closeSettingsBtn.addEventListener('click', () => {
+function closeSettingsModal() {
     settingsModal.classList.remove('visible');
-    setTimeout(() => settingsModal.classList.add('hidden'), 300);
+    settingsModal.classList.add('hidden');
+}
+
+closeSettingsBtn.addEventListener('click', closeSettingsModal);
+
+// Close modal when clicking backdrop
+settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+        closeSettingsModal();
+    }
 });
 
 // --- Table Logic ---
@@ -137,12 +194,12 @@ btnView.addEventListener('click', async () => {
 
         if (vizDrawings.length === 0) return;
 
-        // Open Viz Modal
+        // Open Viz Modal - instant switch
         settingsModal.classList.remove('visible');
-        setTimeout(() => settingsModal.classList.add('hidden'), 300);
+        settingsModal.classList.add('hidden');
 
         vizModal.classList.remove('hidden');
-        setTimeout(() => vizModal.classList.add('visible'), 10);
+        vizModal.classList.add('visible');
 
         // Setup slider
         vizSlider.max = vizDrawings.length - 1;
@@ -152,14 +209,23 @@ btnView.addEventListener('click', async () => {
     } catch (e) { console.error(e); }
 });
 
-backVizBtn.addEventListener('click', () => {
+function closeVizModal() {
     vizModal.classList.remove('visible');
-    setTimeout(() => {
-        vizModal.classList.add('hidden');
-        // Reopen settings
-        settingsModal.classList.remove('hidden');
-        setTimeout(() => settingsModal.classList.add('visible'), 10);
-    }, 300);
+    vizModal.classList.add('hidden');
+}
+
+backVizBtn.addEventListener('click', () => {
+    closeVizModal();
+    // Reopen settings
+    settingsModal.classList.remove('hidden');
+    settingsModal.classList.add('visible');
+});
+
+// Close visualizer modal when clicking backdrop
+vizModal.addEventListener('click', (e) => {
+    if (e.target === vizModal) {
+        closeVizModal();
+    }
 });
 
 vizSlider.addEventListener('input', (e) => showDrawing(parseInt(e.target.value)));
@@ -294,11 +360,8 @@ function handleFinished(data) {
 
     insertSymbol(data.symbol);
 
-    // Save last strokes via a hack (we need strokes for teaching, but the backend doesn't return them in finish response usually)
-    // We should probably ask backend for them, or assume backend saved them in memory.
-    // For now, let's assume we can teach "Last Recorded" by just sending `strokes: null` to `/api/teach` which defaults to recorder.last_strokes in backend improvement I made.
-    // In frontend state, let's just mark that we have something.
-    lastRecordedStrokes = null; // Backend uses its internal memory if we send null
+    // Store the strokes from the backend for teaching corrections
+    lastRecordedStrokes = data.strokes || null;
 
     // Show suggestions based on candidates
     const candidates = data.candidates || [];
@@ -345,16 +408,62 @@ function showDidYouMean(predicted, confidence, candidates) {
         chip.innerText = s;
         chip.onclick = () => {
             if (s === 'Other') {
-                // Open settings to pick ANY label
-                settingsBtn.click();
+                // Transform the chip into an input field
+                chip.replaceWith(createOtherInput());
             } else {
-                teachSymbol(s, null);
-                // Note: We don't re-insert, just teach the correction
+                // Use stored strokes for teaching
+                teachSymbol(s, lastRecordedStrokes);
                 statusText.innerText = `Corrected to ${s}`;
+                statusText.style.color = "var(--success)";
             }
         };
         suggestionChips.appendChild(chip);
     });
+}
+
+function createOtherInput() {
+    const container = document.createElement('div');
+    container.className = 'other-input-container';
+    container.style.display = 'inline-flex';
+    container.style.alignItems = 'center';
+    container.style.gap = '4px';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Symbol';
+    input.className = 'other-input';
+    input.style.cssText = 'width: 80px; padding: 6px 10px; border: 1px solid var(--card-border); border-radius: var(--radius-sm); background: var(--card-bg); color: var(--text-main); font-size: 0.9rem;';
+
+    const submitBtn = document.createElement('button');
+    submitBtn.className = 'chip';
+    submitBtn.innerHTML = '✓';
+    submitBtn.onclick = () => {
+        const label = input.value.trim();
+        if (label) {
+            teachSymbol(label, lastRecordedStrokes);
+            statusText.innerText = `Corrected to ${label}`;
+            statusText.style.color = "var(--success)";
+            // Clear the suggestion area
+            suggestionLabel.style.display = 'none';
+            suggestionChips.innerHTML = '';
+        }
+    };
+
+    // Submit on Enter
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            submitBtn.click();
+        }
+    });
+
+    container.appendChild(input);
+    container.appendChild(submitBtn);
+
+    // Focus the input
+    setTimeout(() => input.focus(), 0);
+
+    return container;
 }
 
 async function teachSymbol(label, strokes) {
