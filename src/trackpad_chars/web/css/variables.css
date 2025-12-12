@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+:root {
+    /* Light Mode (Default) */
+    --bg-base: #f8f9fa;
+    --bg-gradient-start: #e0e7ff;
+    --bg-gradient-end: #f8f9fa;
+
+    --card-bg: rgba(255, 255, 255, 0.8);
+    --card-border: rgba(99, 102, 241, 0.15);
+
+    --primary: #6366f1;
+    /* Indigo - stays same in both modes */
+    --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    --primary-hover: #4f46e5;
+
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+
+    --success: #10b981;
+    --danger: #ef4444;
+
+    --font-main: 'Outfit', sans-serif;
+
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 8px;
+
+    --shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+
+    /* Keyboard theming */
+    --keyboard-bg: transparent;
+    --keyboard-text: #1e293b;
+    --key-bg: rgba(99, 102, 241, 0.08);
+    --key-bg-hover: rgba(99, 102, 241, 0.15);
+    --key-bg-active: rgba(99, 102, 241, 0.25);
+    --key-text: #1e293b;
+    --keycap-secondary-text: #1e293b;
+    --keycap-secondary-background: rgba(99, 102, 241, 0.08);
+    --keycap-secondary-background-hover: rgba(99, 102, 241, 0.15);
+    --keycap-secondary-background-active: rgba(99, 102, 241, 0.25);
+    --_toolbar-text: #1e293b;
+    --toolbar-hover-bg: rgba(99, 102, 241, 0.06);
+}
+
+/* Dark Mode */
+body.dark-mode {
+    --bg-base: #0a0a0f;
+    --bg-gradient-start: #1a1a2e;
+    --bg-gradient-end: #0a0a0f;
+
+    --card-bg: rgba(20, 20, 30, 0.7);
+    --card-border: rgba(255, 255, 255, 0.08);
+
+    --text-main: #ffffff;
+    --text-muted: #94a3b8;
+
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+    /* Keyboard theming for dark mode */
+    --keyboard-bg: transparent;
+    --keyboard-text: #ffffff;
+    --key-bg: rgba(99, 102, 241, 0.15);
+    --key-bg-hover: rgba(99, 102, 241, 0.25);
+    --key-bg-active: rgba(99, 102, 241, 0.35);
+    --key-text: #ffffff;
+    --keycap-secondary-text: #ffffff;
+    --keycap-secondary-background: rgba(99, 102, 241, 0.15);
+    --keycap-secondary-background-hover: rgba(99, 102, 241, 0.25);
+    --keycap-secondary-background-active: rgba(99, 102, 241, 0.35);
+    --_toolbar-text: #ffffff;
+    --toolbar-hover-bg: rgba(99, 102, 241, 0.2);
+}

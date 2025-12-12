@@ -1,0 +1,90 @@
+#math-keyboard-container {
+    width: 100%;
+    /* this must be a fixed height in order for the keyboard to attach */
+    height: 300px;
+
+    /* Main keyboard background and text */
+    --keyboard-background: var(--keyboard-bg);
+    --keyboard-text: var(--keyboard-text);
+
+    /* Regular keys */
+    --keycap-text-color: var(--key-text);
+    --keycap-background: var(--key-bg);
+    --keycap-background-hover: var(--key-bg-hover);
+    --keycap-background-active: var(--key-bg-active);
+    --keycap-border: none;
+    --keycap-border-bottom-color: transparent;
+    --keycap-secondary-text-color: var(--text-muted);
+
+    /* Special keys (shift, backspace, etc.) */
+    --keycap-modifier-background: var(--key-bg);
+    --keycap-modifier-background-hover: var(--key-bg-hover);
+    --keycap-modifier-background-active: var(--key-bg-active);
+    --keycap-modifier-text-color: var(--key-text);
+    --keycap-modifier-border: none;
+
+    /* Tab/Layer switching buttons */
+    --keycap-layer-background: var(--key-bg);
+    --keycap-layer-background-hover: var(--key-bg-hover);
+    --keycap-layer-background-active: var(--key-bg-active);
+    --keycap-layer-text-color: var(--key-text);
+
+    /* Toolbar (top bar with tabs) */
+    --toolbar-background: transparent;
+    --toolbar-text-color: var(--key-text);
+    --toolbar-text-color-active: var(--primary);
+
+    /* Variants panel */
+    --variants-background: var(--card-bg);
+    --variants-text-color: var(--key-text);
+
+    /* SVG icon colors */
+    --keycap-icon-color: var(--key-text);
+}
+
+/* Hide tooltips from keyboard toolbar tabs since I can't figure out how to not get them to be cut off */
+.layer-switch.MLK__tooltip.MLK__tex::after,
+.selected.MLK__tooltip.MLK__tex::after,
+.layer-switch.MLK__tooltip.MLK__tex-math::after,
+.selected.MLK__tooltip.MLK__tex-math::after {
+    display: none;
+}
+
+/* Hide right toolbar, it's not needed */
+div.ML__edit-toolbar.right {
+    display: none;
+}
+
+/* Sets position of keyboard inside of the container */
+#math-keyboard-container .MLK__backdrop {
+    top: 0px;
+    transform: none;
+}
+
+/* Additional overrides to ensure all keyboard elements use proper colors */
+#math-keyboard-container .ML__keycap,
+#math-keyboard-container .MLK__keycap {
+    color: var(--key-text) !important;
+}
+
+#math-keyboard-container .ML__toolbar,
+#math-keyboard-container .MLK__toolbar .layer-switch {
+    color: var(--key-text) !important;
+}
+
+/* Lighter hover effect for toolbar buttons */
+#math-keyboard-container .MLK__toolbar .layer-switch:hover,
+#math-keyboard-container .ML__toolbar-button:hover {
+    background-color: var(--toolbar-hover-bg) !important;
+}
+
+/* Better visibility for right-side toolbar action buttons in light mode */
+#math-keyboard-container .MLK__toolbar .action,
+#math-keyboard-container .ML__toolbar .action {
+    color: var(--key-text) !important;
+}
+
+#math-keyboard-container .MLK__toolbar .action:hover,
+#math-keyboard-container .ML__toolbar .action:hover {
+    background-color: var(--toolbar-hover-bg) !important;
+}
