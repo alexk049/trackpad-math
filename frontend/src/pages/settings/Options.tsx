@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Title, Switch, Slider, Text, Stack, Card } from '@mantine/core';
+import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useMantineColorScheme } from '@mantine/core';
 
 export default function OptionsPage() {
     const [settings, setSettings] = useState({ auto_mode: false, pause_threshold: 1.0 });
+    const { colorScheme, setColorScheme } = useMantineColorScheme();
 
     useEffect(() => {
         fetch('/settings').then((res) => res.json()).then(setSettings);
@@ -23,6 +24,22 @@ export default function OptionsPage() {
             <Title order={2} mb="lg">Options</Title>
 
             <Stack gap="lg">
+                <Card withBorder>
+                    <Text fw={500} mb="xs">Appearance</Text>
+                    <Group justify="space-between">
+                        <Text size="sm">Color Scheme</Text>
+                        <SegmentedControl
+                            value={colorScheme}
+                            onChange={(value: any) => setColorScheme(value)}
+                            data={[
+                                { label: 'Light', value: 'light' },
+                                { label: 'Dark', value: 'dark' },
+                                { label: 'Auto', value: 'auto' },
+                            ]}
+                        />
+                    </Group>
+                </Card>
+
                 <Card withBorder>
                     <Group justify="space-between">
                         <div>
@@ -50,6 +67,3 @@ export default function OptionsPage() {
         </div>
     );
 }
-
-// Helper needed for Group 
-import { Group } from '@mantine/core';
