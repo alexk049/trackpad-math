@@ -44,11 +44,12 @@ export function useRecorder() {
         };
     }, []);
 
-    const toggleRecording = async () => {
-        try {
-            await fetch('/record/toggle', { method: 'POST' });
-        } catch (e) {
-            console.error('Failed to toggle recording', e);
+    const toggleRecording = () => {
+        if (ws.current) {
+            const message = JSON.stringify({ action: 'toggle' });
+            ws.current.send(message);
+        } else {
+            console.error('WebSocket is not connected');
         }
     };
 

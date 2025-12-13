@@ -2,21 +2,12 @@ import time
 import threading
 import subprocess
 import re
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Callable, Tuple, Awaitable, Any
 from pynput import mouse
+import anyio
 
 class DrawingRecorder:
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(DrawingRecorder, cls).__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
-
     def __init__(self):
-        if self._initialized:
-            return
         self.strokes: List[List[Dict[str, float]]] = []
         self.current_stroke: List[Dict[str, float]] = []
         self.is_recording = False
@@ -26,38 +17,54 @@ class DrawingRecorder:
         # Time gap to consider a new stroke (e.3. 0.3s pause)
         self.stroke_gap_threshold = 0.3 
         self._lock = threading.Lock()
-        self._initialized = True
         self._resetting = False
 
-    def start(self):
+        self.auto_mode_active = False
+        self.auto_mode_timeout: Optional[float] = None
+        
+        # AnyIO Signal-Bridge Attribute: Only stores the channel to send data
+        self.sender: Optional[anyio.abc.ObjectSendStream] = None
+
+    def start(self, auto_mode_config: Optional[Tuple[float, anyio.abc.ObjectSendStream]] = None):
+        """
+        Start recording. If `auto_mode_config` is provided, start in auto mode,
+        using the provided AnyIO sender as the signal channel.
+        """
+        if auto_mode_config:
+            self.auto_mode_active = True
+            self.auto_mode_timeout = auto_mode_config[0]
+            self.sender = auto_mode_config[1]
         with self._lock:
-            if self.is_recording:
-                return
-            self.strokes = []
-            self.current_stroke = []
-            self.is_recording = True
-            self.start_time = time.time()
-            self.last_move_time = self.start_time
-            self._resetting = False
-            
-            # Non-blocking listener
+            self._reset_fields()
             self.listener = mouse.Listener(on_move=self._on_move)
             self.listener.start()
 
     def stop(self) -> List[List[Dict[str, float]]]:
         with self._lock:
-            if not self.is_recording:
-                return []
-            self.is_recording = False
             if self.listener:
                 self.listener.stop()
                 self.listener = None
+            return self._get_collected_data()
+    
+    def _reset_fields(self):
+        if self.is_recording:
+            return
+        self.strokes = []
+        self.current_stroke = []
+        self.is_recording = True
+        self.start_time = time.time()
+        self.last_move_time = self.start_time
+        self._resetting = False
             
-            # Finish current stroke
-            if self.current_stroke:
-                self.strokes.append(self.current_stroke)
-            
-            return self.strokes
+    def _get_collected_data(self) -> List[List[Dict[str, float]]]:
+        if not self.is_recording:
+            return []
+        self.is_recording = False
+        
+        if self.current_stroke:
+            self.strokes.append(self.current_stroke)
+        
+        return self.strokes
 
     def _on_move(self, x, y):
         if not self.is_recording:
@@ -69,14 +76,21 @@ class DrawingRecorder:
         now = time.time()
         t = now - self.start_time
         
-        # Check for gap -> new stroke
-        # Note: on_move fires very frequently.
-        # We need to be careful. If the user stops moving, on_move stops firing.
-        # So we can't detect "lift" here easily just by time gap BETWEEN events, 
-        # unless we check the gap between this event and the PREVIOUS event.
-        
         with self._lock:
             dt = now - self.last_move_time
+            if self.auto_mode_active and dt > self.auto_mode_timeout:
+                data = self._get_collected_data()
+                self._reset_fields()
+                # SIGNAL: Safely schedule the data transfer to the main async loop
+                if self.sender:
+                    try:
+                        # Use AnyIO's thread-safe method to run the sender.send coroutine in the main event loop thread.
+                        anyio.to_thread.run_sync(self.sender.send, data)
+                    except Exception as e:
+                        print(f"Error sending signal via AnyIO: {e}")
+                
+                return # return early; don't add more points since timeout threshold was exceeded
+
             if dt > self.stroke_gap_threshold and self.current_stroke:
                 self.strokes.append(self.current_stroke)
                 self.current_stroke = []
@@ -121,42 +135,3 @@ class DrawingRecorder:
             with self._lock:
                 self.current_stroke = []
                 self.last_move_time = time.time()
-
-    def pop_if_timeout(self, timeout: float) -> Optional[List[List[Dict[str, float]]]]:
-        """
-        Check if the last movement was longer than 'timeout' seconds ago.
-        If yes, and we have recorded strokes, return them and clear the buffer.
-        """
-        if not self.is_recording:
-             return None
-
-        with self._lock:
-            # If we haven't even started moving since start(), ignore
-            if not self.strokes and not self.current_stroke:
-                 return None
-
-            elapsed = time.time() - self.last_move_time
-            if elapsed > timeout:
-                # Capture current state
-                
-                # Close current stroke if any
-                if self.current_stroke:
-                    self.strokes.append(self.current_stroke)
-                    self.current_stroke = []
-                
-                if not self.strokes:
-                    return None
-                    
-                result = self.strokes
-                # Reset buffers but KEEP recording
-                self.strokes = []
-                # Also reset start_time for next char to keep timestamps relative? 
-                # Actually, classifier uses relative time or normalized. But keeping t small is good.
-                self.start_time = time.time() 
-                self.last_move_time = self.start_time
-                
-                return result
-        return None
-
-
-recorder = DrawingRecorder()
