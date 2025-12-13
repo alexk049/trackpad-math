@@ -1,9 +1,13 @@
 import os
 import time
-from fastapi import FastAPI, HTTPException
+import asyncio
+import json
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, Depends
 from fastapi.staticfiles import StaticFiles
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Dict
 import uvicorn
 
 from sqlalchemy.orm import Session
@@ -12,12 +16,14 @@ from sqlalchemy import func
 from trackpad_chars.model import SymbolClassifier
 from trackpad_chars.recorder import recorder
 from trackpad_chars.db import get_db, Drawing, init_db
-from fastapi import Depends
 
 app = FastAPI(title="Trackpad Chars")
 
 # Path to web assets
-WEB_DIR = os.path.join(os.path.dirname(__file__), "web")
+WEB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../..", "frontend", "dist"))
+if not os.path.exists(WEB_DIR):
+    print(f"WARNING: Web dir {WEB_DIR} does not exist. Did you run 'npm run build'?")
+
 
 # Initialize DB
 init_db()
@@ -27,12 +33,41 @@ classifier = SymbolClassifier(model_type="knn")
 if not classifier.load():
     print("WARNING: Model not found. Predictions will fail until trained.")
 
+# --- WebSocket Manager ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            await connection.send_json(message)
+
+manager = ConnectionManager()
+
+# --- Models ---
+
 class ToggleResponse(BaseModel):
     status: str
     symbol: Optional[str] = None
     confidence: Optional[float] = None
     candidates: Optional[list] = None
     message: Optional[str] = None
+
+class Settings(BaseModel):
+    auto_mode: bool
+    pause_threshold: float # seconds
+
+# Global settings state
+current_settings = Settings(auto_mode=False, pause_threshold=1.0) 
+
+# --- Routes ---
 
 @app.get("/status")
 def get_status():
@@ -42,67 +77,93 @@ def get_status():
         "is_recording": recorder.is_recording
     }
 
-
-class Settings(BaseModel):
-    auto_mode: bool
-    pause_threshold: float # seconds
-
-# Global settings state
-current_settings = Settings(auto_mode=False, pause_threshold=1.0) 
-
 @app.post("/settings")
 def update_settings(s: Settings):
     global current_settings
     current_settings = s
     return {"status": "updated", "settings": current_settings}
 
+@app.get("/settings")
+def get_settings():
+    return current_settings
+
+
+# WebSocket Endpoint
+@app.websocket("/ws/record")
+async def websocket_record(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Keep connection alive. Client might send "ping" or "start"/"stop" commands later.
+            _ = await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+async def processing_loop():
+    """Background task to poll recorder and push updates via WebSocket."""
+    # print("Starting background recorder loop...") 
+    while True:
+        await asyncio.sleep(0.05) # Poll frequency
+        
+        if not recorder.is_recording:
+            continue
+            
+        # Check timeout - simple check, fast
+        strokes = recorder.pop_if_timeout(current_settings.pause_threshold)
+        
+        if strokes:
+            # Symbol detected! Process in threadpool to avoid blocking loop
+            await process_strokes(strokes)
+
+async def process_strokes(strokes):
+    if not classifier.is_trained:
+         await manager.broadcast({"status": "error", "message": "Model not trained"})
+         return
+
+    # Run heavy prediction in threadpool
+    predictions = await run_in_threadpool(classifier.predict, strokes)
+    
+    if not predictions:
+         await manager.broadcast({"status": "idle", "message": "No prediction"})
+         return
+         
+    pred, conf = predictions[0]
+    candidates = [{"symbol": p[0], "confidence": p[1]} for p in predictions[:5]]
+    
+    # Reset cursor for NEXT symbol (blocking subprocess call)
+    await run_in_threadpool(recorder.reset_cursor)
+    
+    await manager.broadcast({
+        "status": "finished",
+        "symbol": pred,
+        "confidence": conf,
+        "candidates": candidates,
+        "strokes": strokes
+    })
+
+@app.on_event("startup")
+async def startup_event():
+    # Start the background loop
+    asyncio.create_task(processing_loop())
+
 @app.get("/record/poll")
 def poll_recording():
-    """
-    Poll to see if auto-recording has finished a symbol.
-    """
-    if not recorder.is_recording:
-        return {"status": "idle"}
-        
-    # Check timeout
-    strokes = recorder.pop_if_timeout(current_settings.pause_threshold)
-    
-    if strokes:
-        # Symbol detected!
-        if not classifier.is_trained:
-            return {"status": "error", "message": "Model not trained"}
-            
-        predictions = classifier.predict(strokes)
-        if not predictions:
-             return {"status": "idle", "message": "No prediction"}
-             
-        pred, conf = predictions[0]
-        candidates = [{"symbol": p[0], "confidence": p[1]} for p in predictions[:5]]
-        
-        # Reset cursor for NEXT symbol
-        recorder.reset_cursor()
-        
-        return {
-            "status": "finished",
-            "symbol": pred,
-            "confidence": conf,
-            "candidates": candidates,
-            "strokes": strokes
-        }
-    
-    return {"status": "recording"}
+    """Deprecated: Use WebSocket /ws/record instead."""
+    return {"status": "deprecated", "message": "Use WebSocket"}
 
 @app.post("/record/toggle", response_model=ToggleResponse)
-def toggle_recording():
+async def toggle_recording():
     """
     Toggle recording state.
     """
     if not recorder.is_recording:
         # Start
         try:
-            recorder.reset_cursor()
+            await run_in_threadpool(recorder.reset_cursor)
             recorder.start()
             mode = "auto" if current_settings.auto_mode else "manual"
+            # Notify WS clients
+            await manager.broadcast({"status": "recording", "message": f"Recording started ({mode})"})
             return {"status": "recording", "message": f"Recording started ({mode})"}
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to start recording: {e}")
@@ -110,30 +171,31 @@ def toggle_recording():
         # Stop (Manual stop even in auto mode)
         strokes = recorder.stop()
         
-        # In manual mode, we process the strokes.
-        # In auto mode, we might just stop. OR process whatever is left.
-        # Let's process whatever is left.
-        
+        # Process whatever is left
         if not strokes:
+            await manager.broadcast({"status": "idle", "message": "Stopped"})
             return {"status": "idle", "message": "Stopped"}
             
         if not classifier.is_trained:
-            return {"status": "idle", "message": "Model not trained"}
+             return {"status": "idle", "message": "Model not trained"}
 
         # Predict
-        predictions = classifier.predict(strokes)
+        predictions = await run_in_threadpool(classifier.predict, strokes)
         if not predictions:
              return {"status": "idle", "message": "No prediction"}
              
         pred, conf = predictions[0]
         candidates = [{"symbol": p[0], "confidence": p[1]} for p in predictions[:5]]
-        return {
+        
+        result = {
             "status": "finished",
             "symbol": pred,
             "confidence": conf,
             "candidates": candidates,
             "strokes": strokes
         }
+        await manager.broadcast(result)
+        return result
 
 
 # --- Data API ---
@@ -141,19 +203,34 @@ def toggle_recording():
 @app.get("/api/labels")
 def get_labels(db: Session = Depends(get_db)):
     """Get all unique labels and their counts."""
-    # Query: SELECT label, COUNT(*) FROM drawings GROUP BY label
     results = db.query(Drawing.label, func.count(Drawing.id)).group_by(Drawing.label).all()
-    # Format: [{"label": "A", "count": 10}, ...]
-    return [{"label": r[0], "count": r[1]} for r in results]
+    data = {r[0]: r[1] for r in results}
+    
+    # User requested ALL trainable symbols to be present
+    all_symbols = [str(i) for i in range(10)] + \
+                  [chr(i) for i in range(ord('a'), ord('z')+1)] + \
+                  ['summation', 'square root', 'integral'] # Common ones, can expand
+    
+    final_list = []
+    # Merge existing counts
+    for sym in all_symbols:
+        final_list.append({"label": sym, "count": data.get(sym, 0)})
+    
+    # Add any others that exist but aren't in our 'all_symbols' list
+    for label, count in data.items():
+        if label not in all_symbols:
+             final_list.append({"label": label, "count": count})
+             
+    final_list.sort(key=lambda x: x['label'])
+    return final_list
 
 @app.get("/api/drawings")
-def get_drawings(label: Optional[str] = None, db: Session = Depends(get_db)):
+def get_drawings(label: Optional[str] = None, limit: int = 100, db: Session = Depends(get_db)):
     """Get list of drawings, optionally filtered by label."""
     q = db.query(Drawing)
     if label:
         q = q.filter(Drawing.label == label)
-    # Return basic info (exclude heavy strokes if list is huge? For now include all)
-    drawings = q.order_by(Drawing.timestamp.desc()).limit(100).all()
+    drawings = q.order_by(Drawing.timestamp.desc()).limit(limit).all()
     return drawings
 
 @app.get("/api/drawings/{id}")
@@ -170,9 +247,6 @@ def delete_drawing(id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Drawing not found")
     db.delete(d)
     db.commit()
-    
-    # Reload model if dynamic? For KNN we might want to reload or just let it be lazy.
-    # Ideally, we should retrain.
     return {"status": "deleted"}
 
 class TeachRequest(BaseModel):
@@ -180,10 +254,9 @@ class TeachRequest(BaseModel):
     strokes: Optional[list] = None # If None, use last recorded strokes
 
 @app.post("/api/teach")
-def teach_symbol(req: TeachRequest, db: Session = Depends(get_db)):
+async def teach_symbol(req: TeachRequest, db: Session = Depends(get_db)):
     """
     Save strokes as a specific label and incrementally update the model.
-    If strokes provided, use them. Else use recorder.last_strokes.
     """
     strokes_to_save = req.strokes
     
@@ -210,11 +283,57 @@ def teach_symbol(req: TeachRequest, db: Session = Depends(get_db)):
 @app.post("/api/retrain")
 def retrain_model():
     """Force model reload/retrain from DB."""
-    # Logic to dump DB to files or train directly from DB
-    # straightforward for KNN: just need to rebuild X, y from DB.
-    # NOT IMPLEMENTED FULLY here, but placeholder.
-    # Ideally: classifier.train_from_db(db_session)
+    # Not implemented fully yet
     return {"status": "not_implemented_yet"}
+
+# --- Import / Export ---
+
+@app.get("/api/data/export")
+def export_data(db: Session = Depends(get_db)):
+    """Export all training data as JSON."""
+    drawings = db.query(Drawing).all()
+    data = []
+    for d in drawings:
+        data.append({
+            "label": d.label,
+            "strokes": d.strokes,
+            "created_at": d.timestamp.isoformat() if d.timestamp else None
+        })
+    # Return as download with filename
+    return JSONResponse(
+        content=data,
+        headers={"Content-Disposition": "attachment; filename=training_data.json"}
+    )
+
+@app.post("/api/data/import")
+async def import_data(file: UploadFile, db: Session = Depends(get_db)):
+    """Import training data from JSON file."""
+    try:
+        content = await file.read()
+        data = json.loads(content)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON file: {e}")
+        
+    if not isinstance(data, list):
+         raise HTTPException(status_code=400, detail="JSON must be a list of drawings")
+         
+    count = 0
+    for item in data:
+        if "label" not in item or "strokes" not in item:
+            continue
+            
+        # Basic validation passed
+        d = Drawing(
+            label=item["label"],
+            strokes=item["strokes"]
+            # Ignore timestamp on import, let it be now
+        )
+        db.add(d)
+        count += 1
+        
+    db.commit()
+    
+    return {"status": "imported", "count": count}
 
 # Mount static files for the frontend
 app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="static")

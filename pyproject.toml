@@ -17,7 +17,7 @@ dependencies = [
     "matplotlib>=3.8.0",
     "pandas>=2.2.0",
     "fastapi>=0.123.10",
-    "uvicorn>=0.38.0",
+    "uvicorn[standard]>=0.38.0",
     "httpx>=0.28.1",
 ]
 

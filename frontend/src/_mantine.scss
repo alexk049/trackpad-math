@@ -1,0 +1,24 @@
+/* Global Mantine SCSS overrides */
+
+math-field {
+    width: 100%;
+    font-size: 2rem;
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    /* Mantine vars */
+    color: var(--mantine-color-text);
+    --caret-color: var(--mantine-color-blue-filled);
+
+    /* Lighter selection colors */
+    --contains-highlight-background-color: rgba(99, 102, 241, 0.05);
+
+    &[virtual-keyboard-mode="manual"]::part(virtual-keyboard-toggle) {
+        display: none;
+    }
+}
+
+[data-mantine-color-scheme="dark"] math-field {
+    --contains-highlight-background-color: rgba(99, 102, 241, 0.12);
+}

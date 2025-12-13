@@ -201,5 +201,16 @@ def visualize():
     typer.echo("Starting visualizer...")
     subprocess.run(["streamlit", "run", script_path], check=False)
 
+@app.command()
+def serve(
+    host: str = "0.0.0.0",
+    port: int = 8001,
+    reload: bool = True
+):
+    """Start the web server."""
+    import uvicorn
+    # Use string reference to allow reload to work
+    uvicorn.run("trackpad_chars.app:app", host=host, port=port, reload=reload)
+
 if __name__ == "__main__":
     app()
