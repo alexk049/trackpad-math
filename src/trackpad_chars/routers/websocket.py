@@ -6,8 +6,8 @@ from pydantic import BaseModel
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from trackpad_chars.state import recorder, classifier, current_settings
-from trackpad_chars import state
 from trackpad_chars.socket_manager import manager
+from trackpad_chars import state
 
 router = APIRouter()
 
@@ -27,6 +27,7 @@ async def websocket_record(websocket: WebSocket):
             data = json.loads(message)
 
             if data.get('action') == 'toggle':
+                print("toggle")
                 await toggle_recording()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
@@ -69,7 +70,8 @@ async def signal_consumer_task(receiver: anyio.abc.ObjectReceiveStream,
     """
     print("Consumer task started, waiting for signals...")
     # This loop blocks until data is transferred from the background thread
-    async for data in receiver: 
+    async for data in receiver:
+        print("Signal received, processing...")
         # When data arrives, the main thread calls the async handler
         await async_handler(data)
 
@@ -83,13 +85,12 @@ async def toggle_recording():
             await run_in_threadpool(recorder.reset_cursor)
             if current_settings.auto_mode:
                 # 1. Create the AnyIO communication channel, max_buffer=0 is best for signal-like events
-                sender, receiver = anyio.create_memory_object_stream(max_buffer=0)
-                
+                sender, receiver = anyio.create_memory_object_stream(max_buffer_size=0)
                 # 2. Use a Task Group for safe, structured concurrency
-                if state.global_task_group:
-                    state.global_task_group.start_soon(signal_consumer_task, receiver, process_recording)
+                if state.drawing_processor_tg:
+                    state.drawing_processor_tg.start_soon(signal_consumer_task, receiver, process_recording)
                 else:
-                    print("Error: Global task group not initialized")
+                    print("Error: Drawing processor task group not initialized")
                 
                 recorder.start(auto_mode_config=(current_settings.pause_threshold, sender))
             else:
@@ -104,12 +105,13 @@ async def toggle_recording():
             await manager.broadcast({"status": "error", "message": str(e)})
     else:
         # Stop (Manual stop even in auto mode)
+        print("stop")
         if current_settings.auto_mode:
-            recorder.stop()
+            _ = recorder.stop()
+            strokes = []
             # The consumer task will finish when the stream is closed or we can cancel it? 
             # The recorder stop will stop sending signals.
-            return
-        
-        strokes = recorder.stop()
+        else: 
+            strokes = recorder.stop()
 
         await process_recording(strokes)

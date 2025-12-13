@@ -1,5 +1,4 @@
 import os
-import uvicorn
 import anyio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -25,10 +24,11 @@ async def lifespan(app: FastAPI):
     """
     # Initialize global TaskGroup
     async with anyio.create_task_group() as tg:
-        state.global_task_group = tg
+        state.drawing_processor_tg = tg
         yield
+        tg.cancel_scope.cancel()
     # TaskGroup will close here, waiting for all tasks to complete or cancelling them if needed.
-    state.global_task_group = None
+    state.drawing_processor_tg = None
 
 app = FastAPI(title="Trackpad Chars", lifespan=lifespan)
 

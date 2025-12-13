@@ -21,6 +21,7 @@ class DrawingRecorder:
 
         self.auto_mode_active = False
         self.auto_mode_timeout: Optional[float] = None
+        self._timeout_timer: Optional[threading.Timer] = None
         
         # AnyIO Signal-Bridge Attribute: Only stores the channel to send data
         self.sender: Optional[anyio.abc.ObjectSendStream] = None
@@ -34,6 +35,7 @@ class DrawingRecorder:
             self.auto_mode_active = True
             self.auto_mode_timeout = auto_mode_config[0]
             self.sender = auto_mode_config[1]
+            self.token = anyio.lowlevel.current_token()
         with self._lock:
             self._reset_fields()
             self.listener = mouse.Listener(on_move=self._on_move)
@@ -52,7 +54,7 @@ class DrawingRecorder:
         self.strokes = []
         self.current_stroke = []
         self.is_recording = True
-        self.start_time = time.time()
+        self.start_time = None
         self.last_move_time = self.start_time
         self._resetting = False
             
@@ -69,38 +71,58 @@ class DrawingRecorder:
     def _on_move(self, x, y):
         if not self.is_recording:
             return
-            
+
         if self._resetting:
             return
 
         now = time.time()
+        if self.start_time is None:
+            self.start_time = now
+            self.last_move_time = now
         t = now - self.start_time
-        
+
         with self._lock:
-            dt = now - self.last_move_time
-            if self.auto_mode_active and dt > self.auto_mode_timeout:
+            # Cancel any existing timeout timer
+            if self._timeout_timer is not None:
+                self._timeout_timer.cancel()
+                self._timeout_timer = None
+
+            # Add the current point to the stroke
+            self.current_stroke.append({'x': x, 'y': y, 't': t})
+
+            # If in auto mode, schedule a new timeout check
+            if self.auto_mode_active and self.auto_mode_timeout is not None:
+                # Schedule a function to run after auto_mode_timeout
+                self._timeout_timer = threading.Timer(self.auto_mode_timeout, self._handle_auto_mode_timeout)
+                self._timeout_timer.start()
+
+            dt = now - self.last_move_time # This dt will always be 0 or very close to 0 due to self.last_move_time = now above.
+                                           # The original logic for dt > self.auto_mode_timeout is being moved to _handle_auto_mode_timeout.
+            if dt > self.stroke_gap_threshold and self.current_stroke:
+                self.strokes.append(self.current_stroke)
+                self.current_stroke = []
+
+            self.last_move_time = now
+
+    def _handle_auto_mode_timeout(self):
+        """
+        Handles the timeout for auto mode. This method is called by a threading.Timer
+        when no mouse movement has occurred for the auto_mode_timeout duration.
+        """
+        with self._lock:
+            # Double-check if auto mode is still active and if the timer hasn't been cancelled
+            # by a subsequent mouse move (though the timer.cancel() in _on_move should prevent this for active timers)
+            if self.auto_mode_active and self.is_recording:
                 data = self._get_collected_data()
                 self._reset_fields()
                 # SIGNAL: Safely schedule the data transfer to the main async loop
                 if self.sender:
                     try:
                         # Use AnyIO's thread-safe method to run the sender.send coroutine in the main event loop thread.
-                        anyio.to_thread.run_sync(self.sender.send, data)
+                        # pass in event loop token so that non anyio thread knows what event loop to get back to since this handler is not in an anyio managed thread
+                        anyio.from_thread.run(self.sender.send, data, token=self.token)
                     except Exception as e:
                         print(f"Error sending signal via AnyIO: {e}")
-                
-                return # return early; don't add more points since timeout threshold was exceeded
-
-            if dt > self.stroke_gap_threshold and self.current_stroke:
-                self.strokes.append(self.current_stroke)
-                self.current_stroke = []
-            
-            self.current_stroke.append({
-                "x": x,
-                "y": y,
-                "t": t
-            })
-            self.last_move_time = now
 
     def reset_cursor(self):
         """
