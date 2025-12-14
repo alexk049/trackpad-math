@@ -1,68 +1,180 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+    /* Light Mode (Default) */
+    --bg-base: #f8f9fa;
+    --bg-gradient-start: #e0e7ff;
+    --bg-gradient-end: #f8f9fa;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+    --card-bg: rgba(255, 255, 255, 0.8);
+    --card-border: rgba(99, 102, 241, 0.15);
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+    --primary: #6366f1;
+    /* Indigo - stays same in both modes */
+    --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    --primary-hover: #4f46e5;
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
+    --text-main: #1e293b;
+    --text-muted: #64748b;
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
+    --success: #10b981;
+    --danger: #ef4444;
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
+    --font-main: 'Outfit', sans-serif;
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 8px;
+
+    --shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+
+    --contains-highlight-background-color: rgba(99, 102, 241, 0.05);
+
+    /* Keyboard theming */
+    --keyboard-bg: transparent;
+    --keyboard-text: #1e293b;
+    --key-bg: rgba(99, 102, 241, 0.08);
+    --key-bg-hover: rgba(99, 102, 241, 0.15);
+    --key-bg-active: rgba(99, 102, 241, 0.25);
+    --key-text: #1e293b;
+    --keycap-secondary-text: #1e293b;
+    --keycap-secondary-background: rgba(99, 102, 241, 0.08);
+    --keycap-secondary-background-hover: rgba(99, 102, 241, 0.15);
+    --keycap-secondary-background-active: rgba(99, 102, 241, 0.25);
+    --_toolbar-text: #1e293b;
+    --toolbar-hover-bg: rgba(99, 102, 241, 0.06);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* Dark Mode */
+.dark-mode {
+    --bg-base: #0a0a0f;
+    --bg-gradient-start: #1a1a2e;
+    --bg-gradient-end: #0a0a0f;
+
+    --card-bg: rgba(20, 20, 30, 0.7);
+    --card-border: rgba(255, 255, 255, 0.08);
+
+    --text-main: #ffffff;
+    --text-muted: #94a3b8;
+
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+    --contains-highlight-background-color: rgba(99, 102, 241, 0.05);
+
+    /* Keyboard theming for dark mode */
+    --keyboard-bg: transparent;
+    --keyboard-text: #ffffff;
+    --key-bg: rgba(99, 102, 241, 0.15);
+    --key-bg-hover: rgba(99, 102, 241, 0.25);
+    --key-bg-active: rgba(99, 102, 241, 0.35);
+    --key-text: #ffffff;
+    --keycap-secondary-text: #ffffff;
+    --keycap-secondary-background: rgba(99, 102, 241, 0.15);
+    --keycap-secondary-background-hover: rgba(99, 102, 241, 0.25);
+    --keycap-secondary-background-active: rgba(99, 102, 241, 0.35);
+    --_toolbar-text: #ffffff;
+    --toolbar-hover-bg: rgba(255, 255, 255, 0.05);
+}
+
+#math-keyboard-container {
+    width: 100%;
+    /* this must be a fixed height in order for the keyboard to attach. Make it as big as possible,
+  keyboard will only take the space it needs */
+    height: 1000px;
+    margin-top: 20px;
+
+    /* Main keyboard background and text */
+    --keyboard-background: var(--keyboard-bg);
+    --keyboard-text: var(--keyboard-text);
+
+    /* Regular keys */
+    --keycap-text-color: var(--key-text);
+    --keycap-background: var(--key-bg);
+    --keycap-background-hover: var(--key-bg-hover);
+    --keycap-background-active: var(--key-bg-active);
+    --keycap-border: none;
+    --keycap-border-bottom-color: transparent;
+    --keycap-secondary-text-color: var(--text-muted);
+
+    /* Special keys (shift, backspace, etc.) */
+    --keycap-modifier-background: var(--key-bg);
+    --keycap-modifier-background-hover: var(--key-bg-hover);
+    --keycap-modifier-background-active: var(--key-bg-active);
+    --keycap-modifier-text-color: var(--key-text);
+    --keycap-modifier-border: none;
+
+    /* Tab/Layer switching buttons */
+    --keycap-layer-background: var(--key-bg);
+    --keycap-layer-background-hover: var(--key-bg-hover);
+    --keycap-layer-background-active: var(--key-bg-active);
+    --keycap-layer-text-color: var(--key-text);
+
+    /* Toolbar (top bar with tabs) */
+    --toolbar-background: transparent;
+    --toolbar-text-color: var(--key-text);
+    --toolbar-text-color-active: var(--primary);
+
+    /* Variants panel */
+    --variants-background: var(--card-bg);
+    --variants-text-color: var(--key-text);
+
+    /* SVG icon colors */
+    --keycap-icon-color: var(--key-text);
+}
+
+/* NOTE: Math field basic sizing and styles is in the MathInput component*/
+math-field:focus {
+    outline: none;
+}
+
+/* Hide tooltips from keyboard toolbar tabs since I can't figure out how to not get them to be cut off */
+.layer-switch.MLK__tooltip.MLK__tex::after,
+.selected.MLK__tooltip.MLK__tex::after,
+.layer-switch.MLK__tooltip.MLK__tex-math::after,
+.selected.MLK__tooltip.MLK__tex-math::after {
+    display: none;
+}
+
+/* Hide right toolbar, it's not needed */
+div.ML__edit-toolbar.right {
+    display: none;
+}
+
+/* Sets position of keyboard inside of the container */
+#math-keyboard-container .MLK__backdrop {
+    top: 0px;
+    transform: none;
+}
+
+/* Additional overrides to ensure all keyboard elements use proper colors */
+#math-keyboard-container .ML__keycap,
+#math-keyboard-container .MLK__keycap {
+    color: var(--key-text) !important;
+}
+
+#math-keyboard-container .ML__toolbar,
+#math-keyboard-container .MLK__toolbar .layer-switch {
+    color: var(--key-text) !important;
+}
+
+/* Lighter hover effect for toolbar buttons */
+#math-keyboard-container .MLK__toolbar .layer-switch:hover,
+#math-keyboard-container .ML__toolbar-button:hover {
+    background-color: var(--toolbar-hover-bg) !important;
+}
+
+/* Better visibility for right-side toolbar action buttons in light mode */
+#math-keyboard-container .MLK__toolbar .action,
+#math-keyboard-container .ML__toolbar .action {
+    color: var(--key-text) !important;
+}
+
+#math-keyboard-container .MLK__toolbar .action:hover,
+#math-keyboard-container .ML__toolbar .action:hover {
+    background-color: var(--toolbar-hover-bg) !important;
+}
+
+.MLK__variant-panel {
+    background-color: var(--variants-background) !important;
+    color: var(--variants-text-color) !important;
 }

@@ -4,7 +4,10 @@ import { MantineProvider, createTheme } from '@mantine/core'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import '@mantine/core/styles.css';
-// import './index.css'
+import './index.css'
+import { MathfieldElement } from 'mathlive';
+
+MathfieldElement.fontsDirectory = '/fonts';
 
 const theme = createTheme({
   primaryColor: 'blue',

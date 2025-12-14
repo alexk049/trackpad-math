@@ -5,16 +5,19 @@ import { useNavigate } from 'react-router-dom';
 import { MathInput } from '../components/MathInput';
 import { useRecorder } from '../hooks/useRecorder';
 
+import { useMantineColorScheme } from '@mantine/core';
+
 export default function EditorPage() {
     const navigate = useNavigate();
+    const { colorScheme } = useMantineColorScheme();
     const mfRef = useRef<any>(null);
     const [latex, setLatex] = useState('');
     const { state, toggleRecording } = useRecorder();
     const mostRecentCandidates = useRef<{ symbol: string; confidence: number }[] | undefined>(undefined);
-
+    const [mathKeyboardContainer, setMathKeyboardContainer] = useState<HTMLDivElement | null>(null);
     const isRecording = state.status === 'recording' || state.continue_recording;
 
-    // Wheel listener for cursor navigation
+    // Wheel listener for cursor navigation, and focus on math field
     useEffect(() => {
         const handleWheel = (e: WheelEvent) => {
             // Don't intercept if scrolling another element
@@ -57,8 +60,24 @@ export default function EditorPage() {
             }
         };
 
+        const handleFocus = () => {
+            if (mfRef.current) {
+                mfRef.current.focus();
+            }
+        };
+
+        //focus the input when the component mounts
+        handleFocus();
+
         window.addEventListener('wheel', handleWheel, { passive: false });
-        return () => window.removeEventListener('wheel', handleWheel);
+        document.addEventListener('click', handleFocus);
+        document.addEventListener('keydown', handleFocus);
+
+        return () => {
+            document.removeEventListener('click', handleFocus);
+            document.removeEventListener('keydown', handleFocus);
+            window.removeEventListener('wheel', handleWheel);
+        };
     }, []);
 
     // Use effect to clean up recording on page unload/visibility change
@@ -82,7 +101,8 @@ export default function EditorPage() {
     // Keyboard shortcut for recording
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
-            if (e.code === 'Space' && document.activeElement?.tagName !== 'MATH-FIELD') {
+            // if (e.code === 'Space' && document.activeElement?.tagName !== 'MATH-FIELD') {
+            if (e.code === 'Space') {
                 e.preventDefault();
                 toggleRecording();
             }
@@ -119,7 +139,29 @@ export default function EditorPage() {
             <AppShell.Main>
                 <Container size="md">
                     <Box py="xl">
-                        <MathInput ref={mfRef} value={latex} onChange={setLatex} />
+                        <MathInput ref={mfRef} value={latex} onChange={setLatex} container={mathKeyboardContainer as HTMLElement} />
+                    </Box>
+
+                    {/* Suggestions */}
+                    <Box
+                        mt="md" p="md" style={{
+                            border: '1px solid var(--mantine-color-default-border)',
+                            borderRadius: 8,
+                            visibility: mostRecentCandidates.current && mostRecentCandidates.current.length > 0 ? 'visible' : 'hidden'
+                        }}>
+                        <Text size="sm" mb="xs" c="dimmed">Did you mean something else?</Text>
+                        <Group gap="xs">
+                            {mostRecentCandidates.current?.map((c) => (
+                                <Chip
+                                    key={c.symbol}
+                                    onClick={() => handleSuggestionClick(c.symbol)}
+                                    variant="light"
+                                >
+                                    {c.symbol} <Text span size="xs" c="dimmed">({c.confidence.toFixed(2)})</Text>
+                                </Chip>
+                            ))}
+                            <Chip>Other</Chip>
+                        </Group>
                     </Box>
 
                     <Center my="lg">
@@ -153,23 +195,8 @@ export default function EditorPage() {
                         )}
                     </Box>
 
-                    {/* Suggestions */}
-                    {mostRecentCandidates.current && mostRecentCandidates.current.length > 0 && (
-                        <Box mt="md" p="md" style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 8 }}>
-                            <Text size="sm" mb="xs" c="dimmed">Did you mean something else?</Text>
-                            <Group gap="xs">
-                                {mostRecentCandidates.current.map((c) => (
-                                    <Chip
-                                        key={c.symbol}
-                                        onClick={() => handleSuggestionClick(c.symbol)}
-                                        variant="light"
-                                    >
-                                        {c.symbol} <Text span size="xs" c="dimmed">({c.confidence.toFixed(2)})</Text>
-                                    </Chip>
-                                ))}
-                            </Group>
-                        </Box>
-                    )}
+
+                    <div id="math-keyboard-container" ref={setMathKeyboardContainer} className={colorScheme === 'dark' ? 'dark-mode' : ''} />
 
                 </Container>
             </AppShell.Main>

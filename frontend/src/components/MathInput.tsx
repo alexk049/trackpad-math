@@ -5,9 +5,10 @@ interface MathInputProps {
     value?: string;
     onChange?: (value: string) => void;
     style?: React.CSSProperties;
+    container?: HTMLElement;
 }
 
-export const MathInput = forwardRef<HTMLElement, MathInputProps>(({ value, onChange, style }, ref) => {
+export const MathInput = forwardRef<HTMLElement, MathInputProps>(({ value, onChange, style, container }, ref) => {
     const mfRef = useRef<HTMLElement>(null);
 
     useImperativeHandle(ref, () => mfRef.current!);
@@ -27,14 +28,17 @@ export const MathInput = forwardRef<HTMLElement, MathInputProps>(({ value, onCha
 
     useEffect(() => {
         const mf = mfRef.current;
-        if (mf && value !== undefined && (mf as any).value !== value) {
-            (mf as any).setValue(value, { suppressChangeNotifications: true });
+        (mf as any).setValue(value, { suppressChangeNotifications: true });
+        (mf as any).mathVirtualKeyboardPolicy = "manual";
+        if (container) {
+            window.mathVirtualKeyboard.container = container;
+            window.mathVirtualKeyboard.show();
         }
-    }, [value]);
+    }, [value, container]);
 
     return React.createElement('math-field', {
         ref: mfRef,
-        style: { display: 'block', width: '100%', fontSize: '2em', padding: '10px', background: 'white', color: 'black', borderRadius: '8px', ...style },
-        'virtual-keyboard-mode': "manual"
+        style: { display: 'block', width: '100%', fontSize: '2em', padding: '10px', borderRadius: '8px', ...style },
+        // 'virtual-keyboard-policy': "manual"
     });
 });
