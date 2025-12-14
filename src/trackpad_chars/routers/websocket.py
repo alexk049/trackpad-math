@@ -17,6 +17,7 @@ class ToggleResponse(BaseModel):
     confidence: Optional[float] = None
     candidates: Optional[list] = None
     message: Optional[str] = None
+    continue_recording: Optional[bool] = False
 
 @router.websocket("/ws/record")
 async def websocket_record(websocket: WebSocket):
@@ -32,7 +33,7 @@ async def websocket_record(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
-async def process_recording(strokes):
+async def process_recording(strokes, is_done_recording: bool = False):
     if not strokes:
         await manager.broadcast({"status": "idle", "message": "Stopped"})
         return
@@ -49,7 +50,7 @@ async def process_recording(strokes):
          return
          
     pred, conf = predictions[0]
-    candidates = [{"symbol": p[0], "confidence": p[1]} for p in predictions[:5]]
+    candidates = [{"symbol": p[0], "confidence": p[1]} for p in predictions if p[1] > 0 and p[0] != pred]
     
     # Reset cursor for NEXT symbol (blocking subprocess call)
     await run_in_threadpool(recorder.reset_cursor)
@@ -59,7 +60,8 @@ async def process_recording(strokes):
         symbol=pred,
         confidence=conf,
         candidates=candidates,
-        strokes=strokes
+        strokes=strokes,
+        continue_recording=not is_done_recording
     )
     await manager.broadcast(response.dict())
 
@@ -109,9 +111,8 @@ async def toggle_recording():
         if current_settings.auto_mode:
             _ = recorder.stop()
             strokes = []
-            # The consumer task will finish when the stream is closed or we can cancel it? 
-            # The recorder stop will stop sending signals.
-        else: 
+            await process_recording(strokes, is_done_recording=False) # in auto mode, recording continues
+        else:
             strokes = recorder.stop()
+            await process_recording(strokes, is_done_recording=True)
 
-        await process_recording(strokes)

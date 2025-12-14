@@ -7,6 +7,7 @@ export interface RecorderState {
     confidence?: number;
     candidates?: Array<{ symbol: string; confidence: number }>;
     strokes?: any;
+    continue_recording?: boolean;
 }
 
 export function useRecorder() {

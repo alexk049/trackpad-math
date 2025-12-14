@@ -96,8 +96,8 @@ class DrawingRecorder:
                 self._timeout_timer = threading.Timer(self.auto_mode_timeout, self._handle_auto_mode_timeout)
                 self._timeout_timer.start()
 
-            dt = now - self.last_move_time # This dt will always be 0 or very close to 0 due to self.last_move_time = now above.
-                                           # The original logic for dt > self.auto_mode_timeout is being moved to _handle_auto_mode_timeout.
+            dt = now - self.last_move_time
+            
             if dt > self.stroke_gap_threshold and self.current_stroke:
                 self.strokes.append(self.current_stroke)
                 self.current_stroke = []

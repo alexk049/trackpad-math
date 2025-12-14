@@ -10,6 +10,9 @@ export default function EditorPage() {
     const mfRef = useRef<any>(null);
     const [latex, setLatex] = useState('');
     const { state, toggleRecording } = useRecorder();
+    const mostRecentCandidates = useRef<{ symbol: string; confidence: number }[] | undefined>(undefined);
+
+    const isRecording = state.status === 'recording' || state.continue_recording;
 
     // Wheel listener for cursor navigation
     useEffect(() => {
@@ -58,6 +61,24 @@ export default function EditorPage() {
         return () => window.removeEventListener('wheel', handleWheel);
     }, []);
 
+    // Use effect to clean up recording on page unload/visibility change
+    useEffect(() => {
+        const handleUnload = () => {
+            if (isRecording) {
+                toggleRecording();
+            }
+        };
+
+        window.addEventListener('beforeunload', handleUnload);
+        document.addEventListener('visibilitychange', handleUnload);
+
+        // Cleanup function to remove listeners
+        return () => {
+            window.removeEventListener('beforeunload', handleUnload);
+            document.removeEventListener('visibilitychange', handleUnload);
+        };
+    }, [isRecording, toggleRecording]);
+
     // Keyboard shortcut for recording
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
@@ -72,6 +93,9 @@ export default function EditorPage() {
 
     // Insert symbol when detected
     useEffect(() => {
+        if (state.candidates && state.candidates.length > 0 || state.status === 'finished') {
+            mostRecentCandidates.current = state.candidates;
+        }
         if (state.status === 'finished' && state.symbol) {
             mfRef.current?.executeCommand(['insert', state.symbol]);
         }
@@ -80,8 +104,6 @@ export default function EditorPage() {
     const handleSuggestionClick = (sym: string) => {
         mfRef.current?.executeCommand(['insert', sym]);
     };
-
-    const isRecording = state.status === 'recording';
 
     return (
         <AppShell header={{ height: 60 }} padding="md">
@@ -118,13 +140,13 @@ export default function EditorPage() {
                     </Center>
 
                     <Box h={40} style={{ textAlign: 'center' }}>
+                        {isRecording && (
+                            <Text c="red" size="sm" fs="italic">Hold still to finish...</Text>
+                        )}
                         {state.status === 'finished' && (
                             <Text size="xl" fw={700} c="blue">
                                 Detected: {state.symbol} <Text span size="sm" c="dimmed">({(state.confidence || 0).toFixed(2)})</Text>
                             </Text>
-                        )}
-                        {isRecording && (
-                            <Text c="red" size="sm" fs="italic">Hold still to finish...</Text>
                         )}
                         {state.status === 'idle' && state.message && (
                             <Text c="dimmed" size="sm">{state.message}</Text>
@@ -132,11 +154,11 @@ export default function EditorPage() {
                     </Box>
 
                     {/* Suggestions */}
-                    {state.candidates && state.candidates.length > 0 && (
+                    {mostRecentCandidates.current && mostRecentCandidates.current.length > 0 && (
                         <Box mt="md" p="md" style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 8 }}>
                             <Text size="sm" mb="xs" c="dimmed">Did you mean something else?</Text>
                             <Group gap="xs">
-                                {state.candidates.map((c) => (
+                                {mostRecentCandidates.current.map((c) => (
                                     <Chip
                                         key={c.symbol}
                                         onClick={() => handleSuggestionClick(c.symbol)}
