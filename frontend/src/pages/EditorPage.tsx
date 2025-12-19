@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActionIcon, AppShell, Box, Button, Center, Chip, Container, Group, Text, Title } from '@mantine/core';
+import { ActionIcon, AppShell, Box, Button, Center, Container, Group, Text, Title, Notification } from '@mantine/core';
 import { IconSettings, IconMicrophone } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { MathInput } from '../components/MathInput';
-import { useRecorder } from '../hooks/useRecorder';
-
+import { useRecorder, type RecorderState } from '../hooks/useRecorder';
+import { SuggestionsBox } from '../components/SuggestionsBox';
 import { useMantineColorScheme } from '@mantine/core';
 
 export default function EditorPage() {
@@ -13,13 +13,25 @@ export default function EditorPage() {
     const mfRef = useRef<any>(null);
     const [latex, setLatex] = useState('');
     const { state, toggleRecording } = useRecorder();
-    const mostRecentCandidates = useRef<{ symbol: string; confidence: number }[] | undefined>(undefined);
+    const mostRecentState = useRef<RecorderState | undefined>(undefined);
     const [mathKeyboardContainer, setMathKeyboardContainer] = useState<HTMLDivElement | null>(null);
     const isRecording = state.status === 'recording' || state.continue_recording;
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [notification, setNotification] = useState<{ title: string, message: string, color: string } | null>(null);
+
+    const handleFocus = () => {
+        if (mfRef.current && document.activeElement !== mfRef.current) {
+            mfRef.current.focus();
+        }
+    };
 
     // Wheel listener for cursor navigation, and focus on math field
     useEffect(() => {
         const handleWheel = (e: WheelEvent) => {
+            if (document.activeElement !== mfRef.current) {
+                return;
+            }
+
             //prevent default for page scroll might be annoying if content overflows.
             e.preventDefault();
 
@@ -53,23 +65,21 @@ export default function EditorPage() {
             }
         };
 
-        const handleFocus = () => {
-            if (mfRef.current) {
-                mfRef.current.focus();
-            }
-        };
-
         //focus the input when the component mounts
         handleFocus();
 
         window.addEventListener('wheel', handleWheel, { passive: false });
-        document.addEventListener('click', handleFocus);
+        // document.addEventListener('click', handleFocus);
 
         return () => {
-            document.removeEventListener('click', handleFocus);
+            // document.removeEventListener('click', handleFocus);
             window.removeEventListener('wheel', handleWheel);
         };
     }, []);
+
+    useEffect(() => {
+        handleFocus();
+    }, [mfRef, isRecording]);
 
     // Use effect to clean up recording on page unload/visibility change
     useEffect(() => {
@@ -102,9 +112,15 @@ export default function EditorPage() {
 
     // Insert symbol when detected
     useEffect(() => {
-        if (state.candidates && state.candidates.length > 0 || state.status === 'finished') {
-            mostRecentCandidates.current = state.candidates;
+        if (state.status === 'finished') {
+            mostRecentState.current = state
+            if (state.candidates && state.candidates.length > 0) {
+                setShowSuggestions(true);
+            } else {
+                setShowSuggestions(false);
+            }
         }
+
         if (state.status === 'finished' && state.symbol) {
             if (state.symbol === '/') {
                 //https://mathlive.io/mathfield/guides/virtual-keyboard/#placeholder-tokens
@@ -121,6 +137,37 @@ export default function EditorPage() {
         mfRef.current?.executeCommand(['insert', sym]);
     };
 
+    const handleConfirmRetrain = async (symbol: string) => {
+        console.log(mostRecentState.current?.strokes);
+        if (!mostRecentState.current?.strokes) {
+            setNotification({ title: 'Error', message: 'No stroke data available to learn from.', color: 'red' });
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/teach', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    label: symbol,
+                    strokes: mostRecentState.current?.strokes
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setNotification({ title: 'Success', message: `Learned symbol: ${symbol}`, color: 'green' });
+                setShowSuggestions(false); // Hide after successful learn
+            } else {
+                setNotification({ title: 'Error', message: data.detail || 'Failed to learn', color: 'red' });
+            }
+        } catch (e) {
+            setNotification({ title: 'Error', message: 'Network error', color: 'red' });
+        }
+
+        // Hide notification after 3s
+        setTimeout(() => setNotification(null), 3000);
+    };
+
     return (
         <AppShell header={{ height: 60 }} padding="md">
             <AppShell.Header>
@@ -134,31 +181,29 @@ export default function EditorPage() {
 
             <AppShell.Main>
                 <Container size="md">
+                    {notification && (
+                        <Notification
+                            title={notification.title}
+                            color={notification.color}
+                            onClose={() => setNotification(null)}
+                            style={{ position: 'fixed', top: 70, right: 20, zIndex: 1000 }}
+                        >
+                            {notification.message}
+                        </Notification>
+                    )}
+
                     <Box py="xl">
                         <MathInput ref={mfRef} value={latex} onChange={setLatex} container={mathKeyboardContainer as HTMLElement} />
                     </Box>
 
                     {/* Suggestions */}
-                    <Box
-                        mt="md" p="md" style={{
-                            border: '1px solid var(--mantine-color-default-border)',
-                            borderRadius: 8,
-                            visibility: mostRecentCandidates.current && mostRecentCandidates.current.length > 0 ? 'visible' : 'hidden'
-                        }}>
-                        <Text size="sm" mb="xs" c="dimmed">Did you mean something else?</Text>
-                        <Group gap="xs">
-                            {mostRecentCandidates.current?.map((c) => (
-                                <Chip
-                                    key={c.symbol}
-                                    onClick={() => handleSuggestionClick(c.symbol)}
-                                    variant="light"
-                                >
-                                    {c.symbol} <Text span size="xs" c="dimmed">({c.confidence.toFixed(2)})</Text>
-                                </Chip>
-                            ))}
-                            <Chip>Other</Chip>
-                        </Group>
-                    </Box>
+                    <SuggestionsBox
+                        candidates={mostRecentState.current?.candidates || []}
+                        onSelect={handleSuggestionClick}
+                        onConfirmRetrain={handleConfirmRetrain}
+                        onClose={() => setShowSuggestions(false)}
+                        visible={showSuggestions}
+                    />
 
                     <Center my="lg">
                         <Button

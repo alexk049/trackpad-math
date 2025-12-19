@@ -16,6 +16,7 @@ class ToggleResponse(BaseModel):
     symbol: Optional[str] = None
     confidence: Optional[float] = None
     candidates: Optional[list] = None
+    strokes: Optional[list] = None
     message: Optional[str] = None
     continue_recording: Optional[bool] = False
 
