@@ -1,29 +1,52 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActionIcon, AppShell, Box, Button, Center, Container, Group, Text, Title, Notification } from '@mantine/core';
-import { IconSettings, IconMicrophone } from '@tabler/icons-react';
-import { useNavigate } from 'react-router-dom';
+import { Box, Button, Center, Container, Text, Notification } from '@mantine/core';
+import { IconMicrophone } from '@tabler/icons-react';
 import { MathInput } from '../components/MathInput';
 import { useRecorder, type RecorderState } from '../hooks/useRecorder';
 import { SuggestionsBox } from '../components/SuggestionsBox';
 import { useMantineColorScheme } from '@mantine/core';
 
 export default function EditorPage() {
-    const navigate = useNavigate();
     const { colorScheme } = useMantineColorScheme();
     const mfRef = useRef<any>(null);
     const [latex, setLatex] = useState('');
     const { state, toggleRecording } = useRecorder();
     const mostRecentState = useRef<RecorderState | undefined>(undefined);
     const [mathKeyboardContainer, setMathKeyboardContainer] = useState<HTMLDivElement | null>(null);
-    const isRecording = state.status === 'recording' || state.continue_recording;
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [notification, setNotification] = useState<{ title: string, message: string, color: string } | null>(null);
+    const isRecording = state.status === 'recording' || state.continue_recording;
 
     const handleFocus = () => {
         if (mfRef.current && document.activeElement !== mfRef.current) {
             mfRef.current.focus();
         }
     };
+
+    if (isRecording) {
+        handleFocus();
+    }
+
+    useEffect(() => {
+        if (state.status !== 'finished') {
+            return;
+        }
+        // insert symbol
+        if (state.symbol === '/') {
+            //https://mathlive.io/mathfield/guides/virtual-keyboard/#placeholder-tokens
+            mfRef.current?.executeCommand(['insert', '\\frac{#@}{#?}']);
+        } else {
+            mfRef.current?.executeCommand(['insert', state.symbol]);
+        }
+
+        // update suggestions, if necessary
+        mostRecentState.current = state
+        if (state.candidates && state.candidates.length > 0) {
+            setShowSuggestions(true);
+        } else {
+            setShowSuggestions(false);
+        }
+    }, [state]);
 
     // Wheel listener for cursor navigation, and focus on math field
     useEffect(() => {
@@ -77,10 +100,6 @@ export default function EditorPage() {
         };
     }, []);
 
-    useEffect(() => {
-        handleFocus();
-    }, [mfRef, isRecording]);
-
     // Use effect to clean up recording on page unload/visibility change
     useEffect(() => {
         const handleUnload = () => {
@@ -88,7 +107,6 @@ export default function EditorPage() {
                 toggleRecording();
             }
         };
-
         window.addEventListener('beforeunload', handleUnload);
         document.addEventListener('visibilitychange', handleUnload);
         return () => {
@@ -109,28 +127,6 @@ export default function EditorPage() {
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
     }, [toggleRecording]);
-
-    // Insert symbol when detected
-    useEffect(() => {
-        if (state.status === 'finished') {
-            mostRecentState.current = state
-            if (state.candidates && state.candidates.length > 0) {
-                setShowSuggestions(true);
-            } else {
-                setShowSuggestions(false);
-            }
-        }
-
-        if (state.status === 'finished' && state.symbol) {
-            if (state.symbol === '/') {
-                //https://mathlive.io/mathfield/guides/virtual-keyboard/#placeholder-tokens
-                mfRef.current?.executeCommand(['insert', '\\frac{#@}{#?}']);
-            } else {
-                mfRef.current?.executeCommand(['insert', state.symbol]);
-            }
-        }
-    }, [state]);
-
 
     const handleSuggestionClick = (sym: string) => {
         mfRef.current?.executeCommand(['deleteBackward']);
@@ -169,78 +165,65 @@ export default function EditorPage() {
     };
 
     return (
-        <AppShell header={{ height: 60 }} padding="md">
-            <AppShell.Header>
-                <Group h="100%" px="md" justify="space-between">
-                    <Title order={3}>TrackpadChars</Title>
-                    <ActionIcon variant="subtle" size="lg" onClick={() => navigate('/settings/training')}>
-                        <IconSettings />
-                    </ActionIcon>
-                </Group>
-            </AppShell.Header>
+        <Container size="md">
+            {notification && (
+                <Notification
+                    title={notification.title}
+                    color={notification.color}
+                    onClose={() => setNotification(null)}
+                    style={{ position: 'fixed', top: 70, right: 20, zIndex: 1000 }}
+                >
+                    {notification.message}
+                </Notification>
+            )}
 
-            <AppShell.Main>
-                <Container size="md">
-                    {notification && (
-                        <Notification
-                            title={notification.title}
-                            color={notification.color}
-                            onClose={() => setNotification(null)}
-                            style={{ position: 'fixed', top: 70, right: 20, zIndex: 1000 }}
-                        >
-                            {notification.message}
-                        </Notification>
-                    )}
+            <Box py="xl">
+                <MathInput ref={mfRef} value={latex} onChange={setLatex} container={mathKeyboardContainer as HTMLElement} />
+            </Box>
 
-                    <Box py="xl">
-                        <MathInput ref={mfRef} value={latex} onChange={setLatex} container={mathKeyboardContainer as HTMLElement} />
-                    </Box>
+            {/* Suggestions */}
+            <SuggestionsBox
+                candidates={mostRecentState.current?.candidates || []}
+                onSelect={handleSuggestionClick}
+                onConfirmRetrain={handleConfirmRetrain}
+                onClose={() => setShowSuggestions(false)}
+                visible={showSuggestions}
+            />
 
-                    {/* Suggestions */}
-                    <SuggestionsBox
-                        candidates={mostRecentState.current?.candidates || []}
-                        onSelect={handleSuggestionClick}
-                        onConfirmRetrain={handleConfirmRetrain}
-                        onClose={() => setShowSuggestions(false)}
-                        visible={showSuggestions}
-                    />
+            <Center my="lg">
+                <Button
+                    size="xl"
+                    color={isRecording ? 'red' : 'blue'}
+                    leftSection={<IconMicrophone />}
+                    onClick={toggleRecording}
+                    variant={isRecording ? 'filled' : 'light'}
+                    style={{
+                        transition: 'all 0.2s',
+                        transform: isRecording ? 'scale(1.1)' : 'scale(1)',
+                        boxShadow: isRecording ? '0 0 20px rgba(255, 0, 0, 0.5)' : 'none'
+                    }}
+                >
+                    {isRecording ? 'Recording... (Space)' : 'Start Drawing (Space)'}
+                </Button>
+            </Center>
 
-                    <Center my="lg">
-                        <Button
-                            size="xl"
-                            color={isRecording ? 'red' : 'blue'}
-                            leftSection={<IconMicrophone />}
-                            onClick={toggleRecording}
-                            variant={isRecording ? 'filled' : 'light'}
-                            style={{
-                                transition: 'all 0.2s',
-                                transform: isRecording ? 'scale(1.1)' : 'scale(1)',
-                                boxShadow: isRecording ? '0 0 20px rgba(255, 0, 0, 0.5)' : 'none'
-                            }}
-                        >
-                            {isRecording ? 'Recording... (Space)' : 'Start Drawing (Space)'}
-                        </Button>
-                    </Center>
-
-                    <Box h={40} style={{ textAlign: 'center' }}>
-                        {isRecording && (
-                            <Text c="red" size="sm" fs="italic">Hold still to finish...</Text>
-                        )}
-                        {state.status === 'finished' && (
-                            <Text size="xl" fw={700} c="blue">
-                                Detected: {state.symbol} <Text span size="sm" c="dimmed">({(state.confidence || 0).toFixed(2)})</Text>
-                            </Text>
-                        )}
-                        {state.status === 'idle' && state.message && (
-                            <Text c="dimmed" size="sm">{state.message}</Text>
-                        )}
-                    </Box>
+            <Box h={40} style={{ textAlign: 'center' }}>
+                {isRecording && (
+                    <Text c="red" size="sm" fs="italic">Hold still to finish...</Text>
+                )}
+                {state.status === 'finished' && (
+                    <Text size="xl" fw={700} c="blue">
+                        Detected: {state.symbol} <Text span size="sm" c="dimmed">({(state.confidence || 0).toFixed(2)})</Text>
+                    </Text>
+                )}
+                {state.status === 'idle' && state.message && (
+                    <Text c="dimmed" size="sm">{state.message}</Text>
+                )}
+            </Box>
 
 
-                    <div id="math-keyboard-container" ref={setMathKeyboardContainer} className={colorScheme === 'dark' ? 'dark-mode' : ''} />
+            <div id="math-keyboard-container" ref={setMathKeyboardContainer} className={colorScheme === 'dark' ? 'dark-mode' : ''} />
 
-                </Container>
-            </AppShell.Main>
-        </AppShell>
+        </Container>
     );
 }

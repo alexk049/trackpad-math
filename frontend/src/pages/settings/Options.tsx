@@ -6,13 +6,13 @@ export default function OptionsPage() {
     const { colorScheme, setColorScheme } = useMantineColorScheme();
 
     useEffect(() => {
-        fetch('/settings').then((res) => res.json()).then(setSettings);
+        fetch('/api/settings').then((res) => res.json()).then(setSettings);
     }, []);
 
     const update = async (newSettings: any) => {
         const s = { ...settings, ...newSettings };
         setSettings(s);
-        await fetch('/settings', {
+        await fetch('/api/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(s),

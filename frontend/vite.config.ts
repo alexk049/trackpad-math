@@ -25,8 +25,6 @@ export default defineConfig({
         target: 'ws://localhost:8000',
         ws: true
       },
-      '/status': 'http://localhost:8000',
-      '/settings': 'http://localhost:8000'
     }
   }
 })
