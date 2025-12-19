@@ -28,13 +28,18 @@ export const MathInput = forwardRef<HTMLElement, MathInputProps>(({ value, onCha
 
     useEffect(() => {
         const mf = mfRef.current;
+        if (!mf) return;
         (mf as any).setValue(value, { suppressChangeNotifications: true });
+    }, [value]);
+
+    useEffect(() => {
+        const mf = mfRef.current;
         (mf as any).mathVirtualKeyboardPolicy = "manual";
         if (container) {
             window.mathVirtualKeyboard.container = container;
             window.mathVirtualKeyboard.show();
         }
-    }, [value, container]);
+    }, [container]);
 
     return React.createElement('math-field', {
         ref: mfRef,

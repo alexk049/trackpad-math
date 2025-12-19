@@ -20,14 +20,7 @@ export default function EditorPage() {
     // Wheel listener for cursor navigation, and focus on math field
     useEffect(() => {
         const handleWheel = (e: WheelEvent) => {
-            // Don't intercept if scrolling another element
-            // But here we listen on window as per original logic
-
-            // Original logic checks if settings modal is visible. 
-            // In React router, checking path is cleaner, but let's assume if we are on this page, we listen.
-            // However, prevent default for page scroll might be annoying if content overflows.
-            // But the original app prevented default on window.
-
+            //prevent default for page scroll might be annoying if content overflows.
             e.preventDefault();
 
             let dx = e.deltaX;
@@ -71,11 +64,9 @@ export default function EditorPage() {
 
         window.addEventListener('wheel', handleWheel, { passive: false });
         document.addEventListener('click', handleFocus);
-        document.addEventListener('keydown', handleFocus);
 
         return () => {
             document.removeEventListener('click', handleFocus);
-            document.removeEventListener('keydown', handleFocus);
             window.removeEventListener('wheel', handleWheel);
         };
     }, []);
@@ -90,8 +81,6 @@ export default function EditorPage() {
 
         window.addEventListener('beforeunload', handleUnload);
         document.addEventListener('visibilitychange', handleUnload);
-
-        // Cleanup function to remove listeners
         return () => {
             window.removeEventListener('beforeunload', handleUnload);
             document.removeEventListener('visibilitychange', handleUnload);
@@ -117,11 +106,18 @@ export default function EditorPage() {
             mostRecentCandidates.current = state.candidates;
         }
         if (state.status === 'finished' && state.symbol) {
-            mfRef.current?.executeCommand(['insert', state.symbol]);
+            if (state.symbol === '/') {
+                //https://mathlive.io/mathfield/guides/virtual-keyboard/#placeholder-tokens
+                mfRef.current?.executeCommand(['insert', '\\frac{#@}{#?}']);
+            } else {
+                mfRef.current?.executeCommand(['insert', state.symbol]);
+            }
         }
     }, [state]);
 
+
     const handleSuggestionClick = (sym: string) => {
+        mfRef.current?.executeCommand(['deleteBackward']);
         mfRef.current?.executeCommand(['insert', sym]);
     };
 
