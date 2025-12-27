@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useMantineColorScheme } from '@mantine/core';
+import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useMantineColorScheme, Container } from '@mantine/core';
 
 export default function OptionsPage() {
     const [settings, setSettings] = useState({ auto_mode: false, pause_threshold: 1.0 });
@@ -20,7 +20,7 @@ export default function OptionsPage() {
     };
 
     return (
-        <div style={{ padding: 20 }}>
+        <Container size="xl">
             <Title order={2} mb="lg">Options</Title>
 
             <Stack gap="lg">
@@ -64,6 +64,6 @@ export default function OptionsPage() {
                     />
                 </Card>
             </Stack>
-        </div>
+        </Container>
     );
 }
