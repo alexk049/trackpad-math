@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Table, Button, Group, Title, FileButton, Modal, Text, ScrollArea, Card, Center, useMantineColorScheme, ActionIcon } from '@mantine/core';
 import { IconUpload, IconDownload, IconSchool, IconEye } from '@tabler/icons-react';
-import { useRecorder } from '../../hooks/useRecorder';
+import { useRecorder } from '../hooks/useRecorder';
 
 interface LabelData {
     label: string;

@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
 
 :root {
+    --keyboard-zindex: 1;
+
     /* Light Mode (Default) */
     --bg-base: #f8f9fa;
     --bg-gradient-start: #e0e7ff;
@@ -80,7 +82,7 @@
     width: 100%;
     /* this must be a fixed height in order for the keyboard to attach. Make it as big as possible,
   keyboard will only take the space it needs */
-    height: 1000px;
+    height: 500px;
     margin-top: 20px;
 
     /* Main keyboard background and text */
