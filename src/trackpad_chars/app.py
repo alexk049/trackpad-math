@@ -46,4 +46,7 @@ app.include_router(data.router)
 app.include_router(websocket.router)
 
 # Mount static files for the frontend (must be last to avoid catching API routes)
-app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="static")
+if os.path.exists(WEB_DIR):
+    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="static")
+else:
+    print(f"WARNING: Web dir {WEB_DIR} not found. Static files will not be served.")

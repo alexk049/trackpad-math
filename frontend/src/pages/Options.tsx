@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useMantineColorScheme, Container } from '@mantine/core';
+import { API_BASE_URL } from '../config';
 
 export default function OptionsPage() {
     const [settings, setSettings] = useState({ auto_mode: false, pause_threshold: 1.0 });
     const { colorScheme, setColorScheme } = useMantineColorScheme();
 
     useEffect(() => {
-        fetch('/api/settings').then((res) => res.json()).then(setSettings);
+        fetch(`${API_BASE_URL}/api/settings`).then((res) => res.json()).then(setSettings);
     }, []);
 
     const update = async (newSettings: any) => {
         const s = { ...settings, ...newSettings };
         setSettings(s);
-        await fetch('/api/settings', {
+        await fetch(`${API_BASE_URL}/api/settings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(s),

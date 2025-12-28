@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { API_BASE_URL } from '../config';
 import { Box, Button, Center, Container, Text, Notification } from '@mantine/core';
 import { IconMicrophone } from '@tabler/icons-react';
 import { MathInput } from '../components/MathInput';
@@ -133,6 +134,10 @@ export default function EditorPage() {
         mfRef.current?.executeCommand(['insert', sym]);
     };
 
+
+
+    // ...
+
     const handleConfirmRetrain = async (symbol: string) => {
         console.log(mostRecentState.current?.strokes);
         if (!mostRecentState.current?.strokes) {
@@ -141,7 +146,7 @@ export default function EditorPage() {
         }
 
         try {
-            const res = await fetch('/api/teach', {
+            const res = await fetch(`${API_BASE_URL}/api/teach`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

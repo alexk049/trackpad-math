@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { API_BASE_URL } from '../config';
 import { Button, Group, Title, FileButton, Container } from '@mantine/core';
 import { IconUpload, IconDownload } from '@tabler/icons-react';
 import type { LabelData } from '../components/TrainingTable';
@@ -20,7 +21,7 @@ export default function TrainingPage() {
 
 
     const fetchLabels = async () => {
-        const res = await fetch('/api/labels');
+        const res = await fetch(`${API_BASE_URL}/api/labels`);
         const json = await res.json();
         setData(json);
     };
@@ -28,7 +29,7 @@ export default function TrainingPage() {
     const fetchDrawings = async (label: string) => {
         // Fetchings all and filtering client side as per original logic for now
         // Ideally backend supports filtering
-        const res = await fetch(`/api/drawings?limit=1000`);
+        const res = await fetch(`${API_BASE_URL}/api/drawings?limit=1000`);
         const json: Drawing[] = await res.json();
         const filtered = json.filter(d => d.label === label);
         setDrawings(filtered);
@@ -46,7 +47,7 @@ export default function TrainingPage() {
     };
 
     const handleDeleteDrawings = async (ids: string[]) => {
-        await Promise.all(ids.map(id => fetch(`/api/drawings/${id}`, { method: 'DELETE' })));
+        await Promise.all(ids.map(id => fetch(`${API_BASE_URL}/api/drawings/${id}`, { method: 'DELETE' })));
         if (selectedLabel) {
             fetchDrawings(selectedLabel);
             fetchLabels(); // Update counts
@@ -58,17 +59,17 @@ export default function TrainingPage() {
         if (!file) return;
         const formData = new FormData();
         formData.append('file', file);
-        await fetch('/api/data/import', { method: 'POST', body: formData });
+        await fetch(`${API_BASE_URL}/api/data/import`, { method: 'POST', body: formData });
         fetchLabels();
     };
 
     const handleExport = () => {
-        window.location.href = '/api/data/export';
+        window.location.href = `${API_BASE_URL}/api/data/export`;
     };
 
     const saveStrokes = async (label: string, strokes: any) => {
         try {
-            await fetch('/api/teach', {
+            await fetch(`${API_BASE_URL}/api/teach`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ label, strokes })

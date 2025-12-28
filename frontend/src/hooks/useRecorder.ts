@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { API_BASE_URL } from '../config';
 
 export interface RecorderState {
     status: 'idle' | 'recording' | 'finished' | 'error';
@@ -20,10 +21,8 @@ export function useRecorder() {
     }, [state]);
 
     useEffect(() => {
-        // Protocol must match current page protocol (http -> ws, https -> wss)
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        // Use window.location.host to respect proxy port in dev
-        const wsUrl = `${protocol}//${window.location.host}/ws/record`;
+        // Use API_BASE_URL for WebSocket connection
+        const wsUrl = API_BASE_URL.replace('http', 'ws') + '/ws/record';
 
         ws.current = new WebSocket(wsUrl);
 

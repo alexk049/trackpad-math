@@ -1,14 +1,32 @@
-# Python-generated files
+# Python
 __pycache__/
 *.py[oc]
 build/
 dist/
 wheels/
 *.egg-info
-
-# Virtual environments
-.venv
-
-# Ignore all pickle files
+.venv/
 *.pkl
 *.pickle
+build_log.txt
+
+# Database
+app.db
+
+# Node.js
+node_modules/
+frontend/dist/
+
+# Rust/Tauri
+frontend/src-tauri/target/
+frontend/src-tauri/binaries/*
+!frontend/src-tauri/binaries/.gitkeep
+
+# Environment / Secrets
+.env
+.env.local
+
+# System
+.DS_Store
+Thumbs.db
+*.log
