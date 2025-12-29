@@ -1,9 +1,17 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { consoleForwardPlugin } from 'vite-console-forward-plugin'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    consoleForwardPlugin({
+      enabled: true,
+      // endpoint: "/api/debug/client-logs",
+      levels: ["log", "warn", "error", "info", "debug"],
+    }),
+  ],
   css: {
     preprocessorOptions: {
       scss: {

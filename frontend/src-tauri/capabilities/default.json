@@ -7,15 +7,6 @@
   ],
   "permissions": [
     "core:default",
-    {
-      "identifier": "shell:allow-execute",
-      "allow": [
-        {
-          "name": "binaries/trackpad-chars-backend",
-          "sidecar": true
-        }
-      ]
-    },
-    "shell:allow-open"
+    "shell:default"
   ]
 }
