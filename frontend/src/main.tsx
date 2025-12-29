@@ -8,6 +8,8 @@ import './index.css'
 import { MathfieldElement } from 'mathlive';
 
 MathfieldElement.fontsDirectory = '/fonts';
+// turn off math virtual keyboard button click sounds
+MathfieldElement.soundsDirectory = null;
 
 const theme = createTheme({
   primaryColor: 'blue',

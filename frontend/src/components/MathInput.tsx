@@ -34,6 +34,8 @@ export const MathInput = forwardRef<HTMLElement, MathInputProps>(({ value, onCha
 
     useEffect(() => {
         const mf = mfRef.current;
+        if (!mf) return;
+
         (mf as any).mathVirtualKeyboardPolicy = "manual";
         if (container) {
             window.mathVirtualKeyboard.container = container;
@@ -44,6 +46,5 @@ export const MathInput = forwardRef<HTMLElement, MathInputProps>(({ value, onCha
     return React.createElement('math-field', {
         ref: mfRef,
         style: { display: 'block', width: '100%', fontSize: '2em', padding: '10px', borderRadius: '8px', ...style },
-        // 'virtual-keyboard-policy': "manual"
     });
 });

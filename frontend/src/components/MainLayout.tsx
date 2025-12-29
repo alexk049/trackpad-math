@@ -20,6 +20,14 @@ export default function MainLayout() {
         }
     }, [location.pathname, close]);
 
+    useEffect(() => {
+        if (isMobile && opened) {
+            window.mathVirtualKeyboard.hide();
+        } else if (isMobile && !opened) {
+            window.mathVirtualKeyboard.show();
+        }
+    }, [isMobile, opened]);
+
     return (
         <AppShell
             header={{ height: 60 }}

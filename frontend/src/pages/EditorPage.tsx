@@ -134,10 +134,6 @@ export default function EditorPage() {
         mfRef.current?.executeCommand(['insert', sym]);
     };
 
-
-
-    // ...
-
     const handleConfirmRetrain = async (symbol: string) => {
         console.log(mostRecentState.current?.strokes);
         if (!mostRecentState.current?.strokes) {
