@@ -9,6 +9,8 @@ from fastdtw import fastdtw
 
 from trackpad_chars.processing import extract_features, normalize, resample_drawing
 
+Strokes = List[List[Dict[str, float]]]
+
 class SymbolClassifier:
     def __init__(self, model_type: str = "knn", base_path: str = "model"):
         self.model_type = model_type.lower()
@@ -30,9 +32,9 @@ class SymbolClassifier:
         else:
             raise ValueError(f"Unknown model type: {self.model_type}")
 
-    def train(self, drawings: List[Any], labels: List[str]):
+    def train(self, drawings: List[Strokes], labels: List[str]):
         """
-        drawings: List of Drawing objects or dicts equivalent.
+        drawings: List of strokes for each example.
         """
         if self.model_type == "dtw":
             self._train_dtw(drawings, labels)
@@ -42,12 +44,19 @@ class SymbolClassifier:
         self.is_trained = True
         self.save()
 
-    def _train_sklearn(self, drawings: List[Any], labels: List[str]):
+    def reset(self):
+        """Reset the model to an untrained state."""
+        self._init_model()
+        self.is_trained = False
+        if os.path.exists(self.model_path):
+            os.remove(self.model_path)
+
+    def _train_sklearn(self, drawings: List[Strokes], labels: List[str]):
         X = []
         y = []
         for d, label in zip(drawings, labels):
-            # d.strokes is List[List[Dict]]
-            features = extract_features(d.strokes)
+            # d is Strokes (List[List[Dict]])
+            features = extract_features(d)
             X.append(features)
             y.append(label)
         
@@ -58,7 +67,7 @@ class SymbolClassifier:
         X = np.array(X)
         self.model.fit(X, y)
 
-    def _train_dtw(self, drawings: List[Any], labels: List[str]):
+    def _train_dtw(self, drawings: List[Strokes], labels: List[str]):
         # specific preprocessing for DTW: normalize + resample -> keep as sequence of points
         templates = []
         for d in drawings:
@@ -67,7 +76,7 @@ class SymbolClassifier:
             # Better to normalize and resample first.
             
             # Use same norm/resample logic as extraction but keep structure
-            norm_strokes = normalize(d.strokes)
+            norm_strokes = normalize(d)
             resampled = resample_drawing(norm_strokes, points_per_stroke=20)
             
             # Flatten to (N, 2) array for fastdtw
@@ -86,7 +95,7 @@ class SymbolClassifier:
             "labels": labels
         }
 
-    def predict(self, strokes: List[List[Dict[str, float]]]) -> List[Tuple[str, float]]:
+    def predict(self, strokes: Strokes) -> List[Tuple[str, float]]:
         if not self.is_trained:
             # Try loading
             if not self.load():
@@ -97,7 +106,7 @@ class SymbolClassifier:
         else:
             return self._predict_sklearn(strokes)
 
-    def _predict_sklearn(self, strokes: List[List[Dict[str, float]]]) -> List[Tuple[str, float]]:
+    def _predict_sklearn(self, strokes: Strokes) -> List[Tuple[str, float]]:
         features = extract_features(strokes).reshape(1, -1)
         probs = self.model.predict_proba(features)[0]
         classes = self.model.classes_
@@ -109,7 +118,7 @@ class SymbolClassifier:
         results.sort(key=lambda x: x[1], reverse=True)
         return results
 
-    def _predict_dtw(self, strokes: List[List[Dict[str, float]]]) -> List[Tuple[str, float]]:
+    def _predict_dtw(self, strokes: Strokes) -> List[Tuple[str, float]]:
         # Preprocess input same as training
         norm_strokes = normalize(strokes)
         resampled = resample_drawing(norm_strokes, points_per_stroke=20)
@@ -158,7 +167,7 @@ class SymbolClassifier:
         
         return results
 
-    def add_example(self, strokes: List[List[Dict[str, float]]], label: str):
+    def add_example(self, strokes: Strokes, label: str):
         """
         Incrementally update the model with a new example.
         Only supported for clean 'instance-based' models like KNN and DTW.

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { API_BASE_URL } from '../config';
 import { Button, Group, Title, FileButton, Container } from '@mantine/core';
-import { IconUpload, IconDownload } from '@tabler/icons-react';
+import { IconUpload, IconDownload, IconTrash } from '@tabler/icons-react';
 import type { LabelData } from '../components/TrainingTable';
 import type { Drawing } from '../components/DataViewer';
 import { TrainingTable } from '../components/TrainingTable';
@@ -67,6 +67,14 @@ export default function TrainingPage() {
         window.location.href = `${API_BASE_URL}/api/data/export`;
     };
 
+    const handleResetData = async () => {
+        if (!confirm('Are you sure you want to delete ALL training data? This cannot be undone.')) return;
+        await fetch(`${API_BASE_URL}/api/data/reset`, { method: 'DELETE' });
+        fetchLabels();
+        setSelectedLabel(null);
+        setShowDataViewer(false);
+    };
+
     const saveStrokes = async (label: string, strokes: any) => {
         try {
             await fetch(`${API_BASE_URL}/api/teach`, {
@@ -92,6 +100,7 @@ export default function TrainingPage() {
                         {(props) => <Button {...props} leftSection={<IconUpload size={16} />} variant="default">Import</Button>}
                     </FileButton>
                     <Button onClick={handleExport} leftSection={<IconDownload size={16} />} variant="default">Export</Button>
+                    <Button onClick={handleResetData} leftSection={<IconTrash size={16} />} color="red" variant="subtle">Delete All Data</Button>
                 </Group>
             </Group>
 

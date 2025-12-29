@@ -25,12 +25,17 @@ export function TrainingTable({ data, selectedLabel, onSelect }: TrainingTablePr
         return (
             <Table.Tr
                 key={item.label}
+                onMouseDown={(e) => {
+                    if (e.shiftKey) {
+                        e.preventDefault();
+                    }
+                }}
                 onClick={(e) => {
                     e.stopPropagation(); // Prevent potentially triggering the click-outside handler if we put it on the container
                     onSelect(item.label);
                 }}
                 bg={isSelected ? 'var(--mantine-color-blue-light)' : undefined}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
             >
                 <Table.Td style={{ fontFamily: 'monospace', fontSize: '1.2em' }}>{item.label}</Table.Td>
                 <Table.Td>{item.count}</Table.Td>
@@ -49,7 +54,7 @@ export function TrainingTable({ data, selectedLabel, onSelect }: TrainingTablePr
             />
 
             <ScrollArea style={{ flex: 1 }} mb="xs"> {/* Reduced bottom margin by using only mb="xs" or not adding one if not needed. User wanted "smaller bottom margin". */}
-                <Table stickyHeader striped highlightOnHover>
+                <Table stickyHeader striped highlightOnHover style={{ userSelect: 'none' }}>
                     <Table.Thead>
                         <Table.Tr>
                             <Table.Th>Symbol</Table.Th>

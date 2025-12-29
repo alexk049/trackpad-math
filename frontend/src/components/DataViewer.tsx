@@ -154,7 +154,7 @@ export function DataViewer({ label, drawings, onClose, onDeleteDrawings, onTeach
 
                 {/* List */}
                 <ScrollArea style={{ flex: 1, borderTop: '1px solid var(--mantine-color-default-border)' }}>
-                    <Table striped highlightOnHover stickyHeader withTableBorder={false} verticalSpacing="xs">
+                    <Table striped highlightOnHover stickyHeader withTableBorder={false} verticalSpacing="xs" style={{ userSelect: 'none' }}>
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th>Samples</Table.Th>
@@ -165,6 +165,11 @@ export function DataViewer({ label, drawings, onClose, onDeleteDrawings, onTeach
                             {drawings.map(d => (
                                 <Table.Tr
                                     key={d.id}
+                                    onMouseDown={(e) => {
+                                        if (e.shiftKey) {
+                                            e.preventDefault();
+                                        }
+                                    }}
                                     onClick={(e) => handleRowClick(d, e)}
                                     // Highlight if in selected set. 
                                     // Maybe different color for focused? 

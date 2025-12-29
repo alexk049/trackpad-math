@@ -103,7 +103,7 @@ def train(model: str = typer.Option("knn", "--model", "-m", help="Model type: kn
     typer.echo(f"Training {model.upper()} model on {len(drawings)} samples...")
     
     classifier = SymbolClassifier(model_type=model)
-    classifier.train(drawings, [d.label for d in drawings])
+    classifier.train([d.strokes for d in drawings], [d.label for d in drawings])
     typer.echo(f"Training complete. Model saved to {classifier.model_path}.")
 
 @app.command()

@@ -1,4 +1,5 @@
 import json
+from uuid import UUID
 from typing import Optional
 from fastapi import APIRouter, HTTPException, UploadFile, Depends
 from fastapi.responses import JSONResponse
@@ -24,7 +25,7 @@ def get_labels(db: Session = Depends(get_db)):
     # User requested ALL trainable symbols to be present
     all_symbols = [str(i) for i in range(10)] + \
                   [chr(i) for i in range(ord('a'), ord('z')+1)] + \
-                  ['summation', 'square root', 'integral'] 
+                  ['summation', 'square root', 'integral', '/', '+', '-', '(', ')', '='] 
     
     final_list = []
     # Merge existing counts
@@ -49,14 +50,14 @@ def get_drawings(label: Optional[str] = None, limit: int = 100, db: Session = De
     return drawings
 
 @router.get("/api/drawings/{id}")
-def get_drawing(id: str, db: Session = Depends(get_db)):
+def get_drawing(id: UUID, db: Session = Depends(get_db)):
     d = db.query(Drawing).filter(Drawing.id == id).first()
     if not d:
         raise HTTPException(status_code=404, detail="Drawing not found")
     return d
 
 @router.delete("/api/drawings/{id}")
-def delete_drawing(id: str, db: Session = Depends(get_db)):
+def delete_drawing(id: UUID, db: Session = Depends(get_db)):
     d = db.query(Drawing).filter(Drawing.id == id).first()
     if not d:
         raise HTTPException(status_code=404, detail="Drawing not found")
@@ -143,5 +144,24 @@ async def import_data(file: UploadFile, db: Session = Depends(get_db)):
         count += 1
         
     db.commit()
+
+    # Retrain model with all imported data
+    try:
+        classifier.train([item["strokes"] for item in data if "strokes" in item and "label" in item], 
+                         [item["label"] for item in data if "strokes" in item and "label" in item])
+    except Exception as e:
+        print(f"Warning: Could not retrain model after import: {e}")
     
     return {"status": "imported", "count": count}
+
+@router.delete("/api/data/reset")
+def reset_data(db: Session = Depends(get_db)):
+    """Delete ALL training data and reset classifier."""
+    try:
+        db.query(Drawing).delete()
+        db.commit()
+        classifier.reset()
+        return {"status": "reset"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
