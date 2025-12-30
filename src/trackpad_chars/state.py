@@ -1,7 +1,5 @@
 from pydantic import BaseModel
 from trackpad_chars.model import SymbolClassifier
-from trackpad_chars.recorder import DrawingRecorder
-
 import anyio
 from typing import Optional
 
@@ -14,9 +12,6 @@ class Settings(BaseModel):
 
 # Global settings state
 current_settings = Settings(auto_mode=True, pause_threshold=0.2) 
-
-# Recorder Instance
-recorder = DrawingRecorder()
 
 # Classifier Instance
 classifier = SymbolClassifier(model_type="knn") 

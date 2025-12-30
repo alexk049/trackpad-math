@@ -11,12 +11,11 @@ export default function EditorPage() {
     const { colorScheme } = useMantineColorScheme();
     const mfRef = useRef<any>(null);
     const [latex, setLatex] = useState('');
-    const { state, toggleRecording } = useRecorder();
+    const { state, toggleRecording, isRecording } = useRecorder(); // Destructure isRecording
     const mostRecentState = useRef<RecorderState | undefined>(undefined);
     const [mathKeyboardContainer, setMathKeyboardContainer] = useState<HTMLDivElement | null>(null);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [notification, setNotification] = useState<{ title: string, message: string, color: string } | null>(null);
-    const isRecording = state.status === 'recording' || state.continue_recording;
 
     const handleFocus = () => {
         if (mfRef.current && document.activeElement !== mfRef.current) {
@@ -212,14 +211,14 @@ export default function EditorPage() {
                 {isRecording && (
                     <Text c="red" size="sm" fs="italic">Hold still to finish...</Text>
                 )}
-                {state.status === 'finished' && (
+                {/* {state.status === 'finished' && (
                     <Text size="xl" fw={700} c="blue">
                         Detected: {state.symbol} <Text span size="sm" c="dimmed">({(state.confidence || 0).toFixed(2)})</Text>
                     </Text>
                 )}
                 {state.status === 'idle' && state.message && (
                     <Text c="dimmed" size="sm">{state.message}</Text>
-                )}
+                )} */}
             </Box>
 
 

@@ -10,14 +10,14 @@ interface TeachModalProps {
 }
 
 export function TeachModal({ opened, onClose, label, onSave }: TeachModalProps) {
-    const { state: recorderState, toggleRecording } = useRecorder();
+    const { state, toggleRecording } = useRecorder();
 
     // Teach Logic
     useEffect(() => {
-        if (opened && label && recorderState.status === 'finished' && recorderState.strokes) {
-            onSave(label, recorderState.strokes);
+        if (opened && label && state.status === 'finished' && state.strokes) {
+            onSave(label, state.strokes);
         }
-    }, [recorderState, opened, label, onSave]);
+    }, [state, opened, label, onSave]);
 
     // Space key handler for Teach Modal
     useEffect(() => {
@@ -49,13 +49,13 @@ export function TeachModal({ opened, onClose, label, onSave }: TeachModalProps) 
 
                 <Button
                     size="xl"
-                    color={recorderState.status === 'recording' ? 'red' : 'blue'}
+                    color={state.status === 'recording' ? 'red' : 'blue'}
                     onClick={toggleRecording}
                 >
-                    {recorderState.status === 'recording' ? 'Stop Recording' : 'Start Recording'}
+                    {state.status === 'recording' ? 'Stop Recording' : 'Start Recording'}
                 </Button>
 
-                {recorderState.status === 'finished' && (
+                {state.status === 'finished' && (
                     <Text c="green" mt="md" fw={700}>Recorded!</Text>
                 )}
             </div>

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from trackpad_chars.state import current_settings, Settings, classifier, recorder
+from trackpad_chars.state import current_settings, Settings, classifier
 
 router = APIRouter()
 
@@ -8,7 +8,6 @@ def get_status():
     return {
         "model_loaded": classifier.is_trained,
         "model_type": classifier.model_type,
-        "is_recording": recorder.is_recording
     }
 
 @router.post("/api/settings")
