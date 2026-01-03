@@ -10,9 +10,16 @@ interface TeachModalProps {
 }
 
 export function TeachModal({ opened, onClose, label, onSave }: TeachModalProps) {
-    const { isRecording, recordedPoints, toggleRecording } = useRecorder();
+    const { isRecording, recordedPoints, toggleRecording } = useRecorder(true);
     const lastProcessedPointsRef = useRef<any>(null);
     const hasRecorded = !!recordedPoints;
+
+    // Reset last processed when opened/label changes
+    useEffect(() => {
+        if (opened) {
+            lastProcessedPointsRef.current = null;
+        }
+    }, [opened, label]);
 
     // Teach Logic
     useEffect(() => {
@@ -27,14 +34,12 @@ export function TeachModal({ opened, onClose, label, onSave }: TeachModalProps) 
     // Space key handler for Teach Modal
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
-            // Only toggle if modal is open!
             if (opened && e.code === 'Space') {
                 e.preventDefault();
                 e.stopPropagation();
                 toggleRecording();
             }
         };
-        // Use capture to ensure we get it before modal's restrictive focus trapping might interfere
         window.addEventListener('keydown', handler, true);
         return () => window.removeEventListener('keydown', handler, true);
     }, [opened, toggleRecording]);
@@ -56,6 +61,8 @@ export function TeachModal({ opened, onClose, label, onSave }: TeachModalProps) 
                     size="xl"
                     color={isRecording ? 'red' : 'blue'}
                     onClick={toggleRecording}
+                    fullWidth
+                    mb="md"
                 >
                     {isRecording ? 'Stop Recording' : 'Start Recording'}
                 </Button>

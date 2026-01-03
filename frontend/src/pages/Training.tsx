@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
 import { Button, Group, Title, FileButton, Container } from '@mantine/core';
-import { IconUpload, IconDownload, IconTrash } from '@tabler/icons-react';
+import { IconUpload, IconDownload, IconTrash, IconSchool } from '@tabler/icons-react';
 import type { LabelData } from '../components/TrainingTable';
 import type { Drawing } from '../components/DataViewer';
 import { TrainingTable } from '../components/TrainingTable';
 import { DataViewer } from '../components/DataViewer';
 import { TeachModal } from '../components/TeachModal';
+import { BatchTrainModal } from '../components/BatchTrainModal';
 
 export default function TrainingPage() {
     const [data, setData] = useState<LabelData[]>([]);
@@ -18,6 +19,7 @@ export default function TrainingPage() {
 
     // Teach State
     const [teachModalOpen, setTeachModalOpen] = useState(false);
+    const [batchModalOpen, setBatchModalOpen] = useState(false);
 
 
     const fetchLabels = async () => {
@@ -96,6 +98,7 @@ export default function TrainingPage() {
             <Group justify="space-between" mb="lg" align="center" onClick={(e) => e.stopPropagation()}>
                 <Title order={2}>Training Data</Title>
                 <Group>
+                    <Button onClick={() => setBatchModalOpen(true)} leftSection={<IconSchool size={16} />} color="blue">Batch Train</Button>
                     <FileButton onChange={handleImport} accept="application/json">
                         {(props) => <Button {...props} leftSection={<IconUpload size={16} />} variant="default">Import</Button>}
                     </FileButton>
@@ -132,6 +135,13 @@ export default function TrainingPage() {
                 opened={teachModalOpen}
                 onClose={() => setTeachModalOpen(false)}
                 label={selectedLabel}
+                onSave={savePoints}
+            />
+
+            <BatchTrainModal
+                opened={batchModalOpen}
+                onClose={() => setBatchModalOpen(false)}
+                labels={data.map(d => d.label)}
                 onSave={savePoints}
             />
         </Container>

@@ -43,10 +43,12 @@ export function segmentStrokes(points: Point[]): Point[][] {
     return strokes;
 }
 
-export function useRecorder() {
+export function useRecorder(manualMode: boolean = false) {
     const [isRecording, setIsRecording] = useState(false);
     const [recordedPoints, setRecordedPoints] = useState<Point[] | null>(null);
     const [settings, setSettings] = useState<any>(null);
+
+    const isAuto = settings?.auto_mode && !manualMode;
 
     const ws = useRef<WebSocket | null>(null);
     const isRecordingRef = useRef(false);
@@ -98,7 +100,7 @@ export function useRecorder() {
         setIsRecording(false);
 
         //in auto mode, only set recorded points when the timeout occurs
-        if (!settings?.auto_mode) {
+        if (!isAuto) {
             const finalPoints = [...pointsRef.current];
             setRecordedPoints(finalPoints.length > 0 ? finalPoints : null);
         }
@@ -169,7 +171,7 @@ export function useRecorder() {
 
             pointsRef.current.push({ x, y, t: relativeT });
 
-            if (settings?.auto_mode) {
+            if (isAuto) {
                 if (autoModeTimerRef.current) {
                     clearTimeout(autoModeTimerRef.current);
                 }
