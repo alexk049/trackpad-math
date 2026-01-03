@@ -14,7 +14,7 @@ router = APIRouter()
 
 class TeachRequest(BaseModel):
     label: str
-    strokes: Optional[list] = None # If None, use last recorded strokes
+    points: Optional[list] = None # If None, use last recorded points
 
 @router.get("/api/labels")
 def get_labels(db: Session = Depends(get_db)):
@@ -68,23 +68,23 @@ def delete_drawing(id: UUID, db: Session = Depends(get_db)):
 @router.post("/api/teach")
 async def teach_symbol(req: TeachRequest, db: Session = Depends(get_db)):
     """
-    Save strokes as a specific label and incrementally update the model.
+    Save points as a specific label and incrementally update the model.
     """
-    strokes_to_save = req.strokes
+    points_to_save = req.points
     
-    if not strokes_to_save:
-         raise HTTPException(status_code=400, detail="No strokes provided")
+    if not points_to_save:
+         raise HTTPException(status_code=400, detail="No points provided")
 
     new_drawing = Drawing(
         label=req.label,
-        strokes=strokes_to_save
+        points=points_to_save
     )
     db.add(new_drawing)
     db.commit()
     
     # Incrementally update the model with the new example
     try:
-        classifier.add_example(strokes_to_save, req.label)
+        classifier.add_example(points_to_save, req.label)
         model_updated = True
     except Exception as e:
         print(f"Warning: Could not update model incrementally: {e}")
@@ -108,7 +108,7 @@ def export_data(db: Session = Depends(get_db)):
     for d in drawings:
         data.append({
             "label": d.label,
-            "strokes": d.strokes,
+            "points": d.points,
             "created_at": d.timestamp.isoformat() if d.timestamp else None
         })
     # Return as download with filename
@@ -131,13 +131,13 @@ async def import_data(file: UploadFile, db: Session = Depends(get_db)):
          
     count = 0
     for item in data:
-        if "label" not in item or "strokes" not in item:
+        if "label" not in item or "points" not in item:
             continue
             
         # Basic validation passed
         d = Drawing(
             label=item["label"],
-            strokes=item["strokes"]
+            points=item["points"]
             # Ignore timestamp on import, let it be now
         )
         db.add(d)
@@ -147,8 +147,8 @@ async def import_data(file: UploadFile, db: Session = Depends(get_db)):
 
     # Retrain model with all imported data
     try:
-        classifier.train([item["strokes"] for item in data if "strokes" in item and "label" in item], 
-                         [item["label"] for item in data if "strokes" in item and "label" in item])
+        classifier.train([item["points"] for item in data if "points" in item and "label" in item], 
+                         [item["label"] for item in data if "points" in item and "label" in item])
     except Exception as e:
         print(f"Warning: Could not retrain model after import: {e}")
     

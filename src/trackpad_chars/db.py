@@ -23,8 +23,8 @@ class Drawing(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     label: Mapped[str] = mapped_column(String, index=True)
     timestamp: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    # strokes is a list of strokes. Each stroke is a list of points. Each point is {x, y, t}
-    strokes: Mapped[List[List[Dict[str, float]]]] = mapped_column(JSON)
+    # points is a flat list of points. Each point is {x, y, t}
+    points: Mapped[List[Dict[str, float]]] = mapped_column(JSON)
 
 def init_db():
     Base.metadata.create_all(bind=engine)

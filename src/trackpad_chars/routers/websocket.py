@@ -8,6 +8,7 @@ from fastapi.concurrency import run_in_threadpool
 from trackpad_chars.state import classifier, current_settings
 from trackpad_chars.socket_manager import manager
 from trackpad_chars import state
+from trackpad_chars.processing import segment_strokes
 from pynput import mouse
 
 router = APIRouter()
@@ -17,7 +18,7 @@ class ToggleResponse(BaseModel):
     symbol: Optional[str] = None
     confidence: Optional[float] = None
     candidates: Optional[list] = None
-    strokes: Optional[list] = None
+    points: Optional[list] = None
     message: Optional[str] = None
     continue_recording: Optional[bool] = False
 
@@ -44,9 +45,19 @@ async def websocket_record(websocket: WebSocket):
                     await manager.broadcast({"status": "cursor_reset"})
             
             elif action == 'classify':
-                strokes = data.get('strokes')
-                if strokes:
-                    await process_classification(strokes)
+                points = data.get('points')
+                if points:
+                    await process_classification(points)
+                else: 
+                     # Fallback to strokes for backward compatibility if needed
+                     # Actually, if we want to be truly flat, we should flatten strokes or just handle points
+                     strokes = data.get('strokes')
+                     if strokes:
+                        # Flatten strokes back to points if someone sends old format
+                        flat_points = []
+                        for s in strokes:
+                            flat_points.extend(s)
+                        await process_classification(flat_points)
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
@@ -58,13 +69,13 @@ def reset_cursor(x, y):
     except Exception as e:
         print(f"Warning: Could not reset cursor: {e}")
 
-async def process_classification(strokes):
+async def process_classification(points):
     if not classifier.is_trained:
         await manager.broadcast({"status": "error", "message": "Model not trained"})
         return
 
     # Run heavy prediction in threadpool
-    predictions = await run_in_threadpool(classifier.predict, strokes)
+    predictions = await run_in_threadpool(classifier.predict, points)
     
     if not predictions:
          await manager.broadcast({"status": "idle", "message": "No prediction"})
@@ -78,7 +89,7 @@ async def process_classification(strokes):
         symbol=pred,
         confidence=conf,
         candidates=candidates,
-        strokes=strokes,
+        points=points,
         continue_recording=False # Client decides whether to continue
     )
     await manager.broadcast(response.dict())

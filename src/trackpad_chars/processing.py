@@ -161,3 +161,42 @@ def extract_features(strokes: List[List[Dict[str, float]]]) -> np.ndarray:
     features.append(aspect_ratio)
             
     return np.array(features)
+
+def segment_strokes(points: List[Dict[str, float]]) -> List[List[Dict[str, float]]]:
+    """
+    Segments a flat list of points into strokes based on time difference.
+    """
+    if not points:
+        return []
+    if len(points) == 1:
+        return [points]
+    
+    # Calculate deltas
+    deltas = []
+    for i in range(1, len(points)):
+        deltas.append(points[i]['t'] - points[i-1]['t'])
+    
+    if not deltas:
+        return [points]
+        
+    # Median
+    median = float(np.median(deltas))
+    
+    # Threshold calculation
+    # Max of (10 * median) or (0.15s)
+    # 0.15s to match frontend implementation plan heuristic
+    threshold = max(median * 10, 0.15)
+    
+    strokes = []
+    current_stroke = [points[0]]
+    
+    for i in range(1, len(points)):
+        dt = points[i]['t'] - points[i-1]['t']
+        if dt > threshold:
+            strokes.append(current_stroke)
+            current_stroke = []
+        
+        current_stroke.append(points[i])
+        
+    strokes.append(current_stroke)
+    return strokes

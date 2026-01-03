@@ -5,17 +5,16 @@ import re
 from typing import List, Dict, Optional, Callable, Tuple, Awaitable, Any
 from pynput import mouse
 import anyio
+import numpy as np
 
 class DrawingRecorder:
     def __init__(self):
-        self.strokes: List[List[Dict[str, float]]] = []
-        self.current_stroke: List[Dict[str, float]] = []
+        self.points: List[Dict[str, float]] = [] # Flat list of all points
         self.is_recording = False
         self.listener: Optional[mouse.Listener] = None
         self.start_time = 0.0
         self.last_move_time = 0.0
-        # Time gap to consider a new stroke (e.3. 0.3s pause)
-        self.stroke_gap_threshold = 0.3 
+        
         self._lock = threading.Lock()
         self._resetting = False
 
@@ -25,6 +24,7 @@ class DrawingRecorder:
         
         # AnyIO Signal-Bridge Attribute: Only stores the channel to send data
         self.sender: Optional[anyio.abc.ObjectSendStream] = None
+        self.token = None
 
     def start(self, auto_mode_config: Optional[Tuple[float, anyio.abc.ObjectSendStream]] = None):
         """
@@ -41,7 +41,7 @@ class DrawingRecorder:
             self.listener = mouse.Listener(on_move=self._on_move)
             self.listener.start()
 
-    def stop(self) -> List[List[Dict[str, float]]]:
+    def stop(self) -> List[Dict[str, float]]:
         with self._lock:
             if self.listener:
                 self.listener.stop()
@@ -51,22 +51,20 @@ class DrawingRecorder:
     def _reset_fields(self):
         if self.is_recording:
             return
-        self.strokes = []
-        self.current_stroke = []
+        self.points = []
         self.is_recording = True
         self.start_time = None
         self.last_move_time = self.start_time
         self._resetting = False
             
-    def _get_collected_data(self) -> List[List[Dict[str, float]]]:
+    def _get_collected_data(self) -> List[Dict[str, float]]:
         if not self.is_recording:
             return []
         self.is_recording = False
         
-        if self.current_stroke:
-            self.strokes.append(self.current_stroke)
-        
-        return self.strokes
+        # Return flat points
+        return self.points
+
 
     def _on_move(self, x, y):
         if not self.is_recording:
@@ -87,20 +85,14 @@ class DrawingRecorder:
                 self._timeout_timer.cancel()
                 self._timeout_timer = None
 
-            # Add the current point to the stroke
-            self.current_stroke.append({'x': x, 'y': y, 't': t})
+            # Add the current point to the flat list
+            self.points.append({'x': x, 'y': y, 't': t})
 
             # If in auto mode, schedule a new timeout check
             if self.auto_mode_active and self.auto_mode_timeout is not None:
                 # Schedule a function to run after auto_mode_timeout
                 self._timeout_timer = threading.Timer(self.auto_mode_timeout, self._handle_auto_mode_timeout)
                 self._timeout_timer.start()
-
-            dt = now - self.last_move_time
-            
-            if dt > self.stroke_gap_threshold and self.current_stroke:
-                self.strokes.append(self.current_stroke)
-                self.current_stroke = []
 
             self.last_move_time = now
 
@@ -119,8 +111,13 @@ class DrawingRecorder:
                 if self.sender:
                     try:
                         # Use AnyIO's thread-safe method to run the sender.send coroutine in the main event loop thread.
-                        # pass in event loop token so that non anyio thread knows what event loop to get back to since this handler is not in an anyio managed thread
-                        anyio.from_thread.run(self.sender.send, data, token=self.token)
+                         if self.token:
+                            anyio.from_thread.run(self.sender.send, data, token=self.token)
+                         else:
+                            # Fallback if token wasn't captured, though start() should capture it.
+                            # Usually this might fail if we are outside of context, but let's try.
+                            # Re-getting current token here might be wrong thread.
+                            pass
                     except Exception as e:
                         print(f"Error sending signal via AnyIO: {e}")
 
@@ -155,5 +152,7 @@ class DrawingRecorder:
         finally:
             self._resetting = False
             with self._lock:
-                self.current_stroke = []
+                # Clear points on cursor reset to avoid connecting jumps
+                self.points = []
                 self.last_move_time = time.time()
+                pass

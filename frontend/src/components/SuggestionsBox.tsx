@@ -66,7 +66,7 @@ export function SuggestionsBox({ candidates, onSelect, onConfirmRetrain, onClose
 
     return (
         <Box
-            mt="md" p="md" style={{
+            p="md" style={{
                 border: '1px solid var(--mantine-color-default-border)',
                 borderRadius: 8,
                 position: 'relative'

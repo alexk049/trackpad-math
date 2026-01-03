@@ -7,7 +7,7 @@ export interface RecorderState {
     symbol?: string;
     confidence?: number;
     candidates?: Array<{ symbol: string; confidence: number }>;
-    strokes?: any;
+    points?: Array<{ x: number, y: number, t: number }>;
     continue_recording?: boolean;
 }
 
@@ -17,6 +17,43 @@ interface Point {
     t: number;
 }
 
+export function segmentStrokes(points: Point[]): Point[][] {
+    if (points.length === 0) return [];
+    if (points.length === 1) return [points];
+
+    const deltas: number[] = [];
+    for (let i = 1; i < points.length; i++) {
+        deltas.push(points[i].t - points[i - 1].t);
+    }
+
+    if (deltas.length === 0) return [points];
+
+    // Calculate median delta
+    const sortedDeltas = [...deltas].sort((a, b) => a - b);
+    const mid = Math.floor(sortedDeltas.length / 2);
+    const median = sortedDeltas.length % 2 !== 0
+        ? sortedDeltas[mid]
+        : (sortedDeltas[mid - 1] + sortedDeltas[mid]) / 2;
+
+    const threshold = Math.max(median * 10, 0.15);
+
+    const strokes: Point[][] = [];
+    let currentStroke: Point[] = [points[0]];
+
+    for (let i = 1; i < points.length; i++) {
+        const dt = points[i].t - points[i - 1].t;
+        if (dt > threshold) {
+            strokes.push(currentStroke);
+            currentStroke = [];
+        }
+        currentStroke.push(points[i]);
+    }
+    strokes.push(currentStroke);
+
+    return strokes;
+}
+
+
 export function useRecorder() {
     const [state, setState] = useState<RecorderState>({ status: 'idle' });
     const ws = useRef<WebSocket | null>(null);
@@ -24,8 +61,10 @@ export function useRecorder() {
 
     const isRecordingRef = useRef(false);
     const ignoreMouseMoveRef = useRef(false);
-    const strokesRef = useRef<Point[][]>([]);
-    const currentStrokeRef = useRef<Point[]>([]);
+    // flattened list of all points in the current recording session
+    const pointsRef = useRef<Point[]>([]);
+
+    // We still track lastMoveTime for auto-mode timeout logic (pause detection)
     const lastMoveTimeRef = useRef<number>(0);
     const startTimeRef = useRef<number>(0);
     const autoModeTimerRef = useRef<number | undefined>(undefined);
@@ -40,23 +79,17 @@ export function useRecorder() {
     const sendClassificationRequest = useCallback(() => {
         if (!ws.current) return;
 
-        // Finalize current stroke if exists
-        if (currentStrokeRef.current.length > 0) {
-            strokesRef.current.push(currentStrokeRef.current);
-            currentStrokeRef.current = [];
-        }
+        const allPoints = pointsRef.current;
+        if (allPoints.length === 0) return;
 
-        const strokes = strokesRef.current;
-        if (strokes.length === 0) return;
-
-        console.log("Sending classification request, strokes:", strokes.length);
+        console.log(`Sending classification request. Points: ${allPoints.length}`);
         ws.current.send(JSON.stringify({
             action: 'classify',
-            strokes: strokes
+            points: allPoints
         }));
 
-        // Reset local strokes but keep recording state technically until we decide what to do next
-        strokesRef.current = [];
+        // Reset local strokes
+        pointsRef.current = [];
     }, []);
 
     const startRecordingSequence = useCallback(() => {
@@ -71,8 +104,7 @@ export function useRecorder() {
     const beginRecording = useCallback(() => {
         if (!ws.current) return;
 
-        strokesRef.current = [];
-        currentStrokeRef.current = [];
+        pointsRef.current = [];
         startTimeRef.current = Date.now() / 1000;
         lastMoveTimeRef.current = startTimeRef.current;
         isRecordingRef.current = true;
@@ -95,7 +127,6 @@ export function useRecorder() {
 
         console.log("Auto-mode timeout, classifying...");
         if (autoModeTimerRef.current) {
-            console.log("clearing timeout")
             clearTimeout(autoModeTimerRef.current);
         }
         sendClassificationRequest();
@@ -165,24 +196,17 @@ export function useRecorder() {
             if (!isRecordingRef.current || ignoreMouseMoveRef.current) return;
 
             const now = Date.now() / 1000;
-            const t = now - startTimeRef.current;
-            const dt = now - lastMoveTimeRef.current;
+            const relativeT = now - startTimeRef.current;
 
             //could also use e.clientX/Y here
             const x = e.screenX;
             const y = e.screenY;
 
-            // Stroke gap logic
-            const strokeGap = 0.3; // Hardcoded or similar to python default
-            if (dt > strokeGap && currentStrokeRef.current.length > 0) {
-                strokesRef.current.push(currentStrokeRef.current);
-                currentStrokeRef.current = [];
-            }
-
-            currentStrokeRef.current.push({ x, y, t });
+            pointsRef.current.push({ x, y, t: relativeT });
             lastMoveTimeRef.current = now;
 
-            // Auto Mode Timeout logic
+            // Auto Mode Timeout logic (Pause detection)
+            // This is separate from stroke segmentation. This detects when the user has "finished" the character.
             if (settings?.auto_mode) {
                 if (autoModeTimerRef.current) {
                     clearTimeout(autoModeTimerRef.current);

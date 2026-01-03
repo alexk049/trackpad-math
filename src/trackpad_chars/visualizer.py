@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from trackpad_chars.db import get_db, Drawing
+from trackpad_chars.processing import segment_strokes
 
 def main():
     st.set_page_config(page_title="Trackpad Chars Visualizer", page_icon="✏️")
@@ -70,9 +71,9 @@ def main():
     st.markdown(f"**Label:** '{selected_label}' (**ID:** {drawing.id})")
     st.text(f"Timestamp: {drawing.timestamp}")
     
-    strokes = drawing.strokes
-    total_points = sum(len(s) for s in strokes)
-    st.text(f"Strokes: {len(strokes)} | Total Points: {total_points}")
+    points = drawing.points
+    strokes = segment_strokes(points)
+    st.text(f"Strokes: {len(strokes)} | Total Points: {len(points)}")
 
     # Plotting
     if strokes:

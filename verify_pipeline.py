@@ -29,7 +29,11 @@ def create_dummy_drawing(label):
             p['x'] += random.uniform(-0.05, 0.05)
             p['y'] += random.uniform(-0.05, 0.05)
     
-    return strokes
+    # Flatten strokes into points
+    points = []
+    for stroke in strokes:
+        points.extend(stroke)
+    return points
 
 def verify():
     print("Initializing DB...")
@@ -45,22 +49,24 @@ def verify():
 
     print("Generating training data...")
     for _ in range(10):
-        db.add(Drawing(label="A", strokes=create_dummy_drawing("A")))
-        db.add(Drawing(label="B", strokes=create_dummy_drawing("B")))
+        db.add(Drawing(label="A", points=create_dummy_drawing("A")))
+        db.add(Drawing(label="B", points=create_dummy_drawing("B")))
     db.commit()
     
     print("Training model...")
     clf = SymbolClassifier()
     drawings = db.query(Drawing).all()
-    clf.train(drawings, [d.label for d in drawings])
+    clf.train([d.points for d in drawings], [d.label for d in drawings])
     
     print("Testing prediction...")
     test_a = create_dummy_drawing("A")
-    pred, conf = clf.predict(test_a)
+    res = clf.predict(test_a)
+    pred, conf = res[0]
     print(f"Test A -> Predicted: {pred} (Conf: {conf})")
     
     test_b = create_dummy_drawing("B")
-    pred, conf = clf.predict(test_b)
+    res = clf.predict(test_b)
+    pred, conf = res[0]
     print(f"Test B -> Predicted: {pred} (Conf: {conf})")
 
 if __name__ == "__main__":

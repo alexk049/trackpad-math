@@ -6,7 +6,7 @@ interface TeachModalProps {
     opened: boolean;
     onClose: () => void;
     label: string | null;
-    onSave: (label: string, strokes: any) => void;
+    onSave: (label: string, points: any) => void;
 }
 
 export function TeachModal({ opened, onClose, label, onSave }: TeachModalProps) {
@@ -14,8 +14,8 @@ export function TeachModal({ opened, onClose, label, onSave }: TeachModalProps) 
 
     // Teach Logic
     useEffect(() => {
-        if (opened && label && state.status === 'finished' && state.strokes) {
-            onSave(label, state.strokes);
+        if (opened && label && state.status === 'finished' && state.points) {
+            onSave(label, state.points);
         }
     }, [state, opened, label, onSave]);
 

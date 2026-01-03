@@ -7,9 +7,10 @@ import os
 from scipy.spatial.distance import euclidean
 from fastdtw import fastdtw
 
-from trackpad_chars.processing import extract_features, normalize, resample_drawing
+from trackpad_chars.processing import extract_features, normalize, resample_drawing, segment_strokes
 
 Strokes = List[List[Dict[str, float]]]
+Points = List[Dict[str, float]]
 
 class SymbolClassifier:
     def __init__(self, model_type: str = "knn", base_path: str = "model"):
@@ -32,9 +33,9 @@ class SymbolClassifier:
         else:
             raise ValueError(f"Unknown model type: {self.model_type}")
 
-    def train(self, drawings: List[Strokes], labels: List[str]):
+    def train(self, drawings: List[Points], labels: List[str]):
         """
-        drawings: List of strokes for each example.
+        drawings: List of flat points for each example.
         """
         if self.model_type == "dtw":
             self._train_dtw(drawings, labels)
@@ -51,12 +52,13 @@ class SymbolClassifier:
         if os.path.exists(self.model_path):
             os.remove(self.model_path)
 
-    def _train_sklearn(self, drawings: List[Strokes], labels: List[str]):
+    def _train_sklearn(self, drawings: List[Points], labels: List[str]):
         X = []
         y = []
         for d, label in zip(drawings, labels):
-            # d is Strokes (List[List[Dict]])
-            features = extract_features(d)
+            # d is Points (List[Dict])
+            strokes = segment_strokes(d)
+            features = extract_features(strokes)
             X.append(features)
             y.append(label)
         
@@ -67,16 +69,13 @@ class SymbolClassifier:
         X = np.array(X)
         self.model.fit(X, y)
 
-    def _train_dtw(self, drawings: List[Strokes], labels: List[str]):
+    def _train_dtw(self, drawings: List[Points], labels: List[str]):
         # specific preprocessing for DTW: normalize + resample -> keep as sequence of points
         templates = []
         for d in drawings:
-            # We want a clean sequence of points. 
-            # flatten_drawing in processing.py gives (N, 3) with x,y,t
-            # Better to normalize and resample first.
-            
-            # Use same norm/resample logic as extraction but keep structure
-            norm_strokes = normalize(d)
+            # d is Points (List[Dict])
+            strokes = segment_strokes(d)
+            norm_strokes = normalize(strokes)
             resampled = resample_drawing(norm_strokes, points_per_stroke=20)
             
             # Flatten to (N, 2) array for fastdtw
@@ -95,18 +94,19 @@ class SymbolClassifier:
             "labels": labels
         }
 
-    def predict(self, strokes: Strokes) -> List[Tuple[str, float]]:
+    def predict(self, points: Points) -> List[Tuple[str, float]]:
         if not self.is_trained:
             # Try loading
             if not self.load():
                 return [("Uninitialized", 0.0)]
         
         if self.model_type == "dtw":
-            return self._predict_dtw(strokes)
+            return self._predict_dtw(points)
         else:
-            return self._predict_sklearn(strokes)
+            return self._predict_sklearn(points)
 
-    def _predict_sklearn(self, strokes: Strokes) -> List[Tuple[str, float]]:
+    def _predict_sklearn(self, points: Points) -> List[Tuple[str, float]]:
+        strokes = segment_strokes(points)
         features = extract_features(strokes).reshape(1, -1)
         probs = self.model.predict_proba(features)[0]
         classes = self.model.classes_
@@ -118,8 +118,9 @@ class SymbolClassifier:
         results.sort(key=lambda x: x[1], reverse=True)
         return results
 
-    def _predict_dtw(self, strokes: Strokes) -> List[Tuple[str, float]]:
+    def _predict_dtw(self, points: Points) -> List[Tuple[str, float]]:
         # Preprocess input same as training
+        strokes = segment_strokes(points)
         norm_strokes = normalize(strokes)
         resampled = resample_drawing(norm_strokes, points_per_stroke=20)
         
@@ -167,27 +168,29 @@ class SymbolClassifier:
         
         return results
 
-    def add_example(self, strokes: Strokes, label: str):
+    def add_example(self, points: Points, label: str):
         """
-        Incrementally update the model with a new example.
+        Increment incrementally update the model with a new example.
         Only supported for clean 'instance-based' models like KNN and DTW.
         """
         if self.model_type == "rf":
             print("Warning: Random Forest does not support incremental updates. Training required.")
             return
 
+        strokes = segment_strokes(points)
+
         if self.model_type == "dtw":
             # Just append to templates
             norm_strokes = normalize(strokes)
             resampled = resample_drawing(norm_strokes, points_per_stroke=20)
-            points = []
+            p_arr = []
             for stroke in resampled:
                 for p in stroke:
-                    points.append([p['x'], p['y']])
-            if not points: 
-                points = [[0.0, 0.0]]
+                    p_arr.append([p['x'], p['y']])
+            if not p_arr: 
+                p_arr = [[0.0, 0.0]]
             
-            self.model["templates"].append(np.array(points))
+            self.model["templates"].append(np.array(p_arr))
             self.model["labels"].append(label)
             self.save()
             return

@@ -1,12 +1,13 @@
 import { ActionIcon, Button, Card, Center, Group, ScrollArea, Table, Title } from '@mantine/core';
 import { IconSchool } from '@tabler/icons-react';
 import { useEffect, useRef, useState } from 'react';
+import { segmentStrokes } from '../hooks/useRecorder';
 
 export interface Drawing {
     id: string;
     label: string;
     timestamp: string;
-    strokes: Array<Array<{ x: number, y: number, t: number }>>;
+    points: Array<{ x: number, y: number, t: number }>;
 }
 
 interface DataViewerProps {
@@ -53,14 +54,14 @@ export function DataViewer({ label, drawings, onClose, onDeleteDrawings, onTeach
         ctx.lineJoin = 'round';
 
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        focusedDrawing.strokes.forEach(stroke => {
-            stroke.forEach(pt => {
-                if (pt.x < minX) minX = pt.x;
-                if (pt.x > maxX) maxX = pt.x;
-                if (pt.y < minY) minY = pt.y;
-                if (pt.y > maxY) maxY = pt.y;
-            });
+        focusedDrawing.points.forEach(pt => {
+            if (pt.x < minX) minX = pt.x;
+            if (pt.x > maxX) maxX = pt.x;
+            if (pt.y < minY) minY = pt.y;
+            if (pt.y > maxY) maxY = pt.y;
         });
+
+        const strokes = segmentStrokes(focusedDrawing.points);
 
         const width = maxX - minX || 1;
         const height = maxY - minY || 1;
@@ -68,7 +69,7 @@ export function DataViewer({ label, drawings, onClose, onDeleteDrawings, onTeach
         const offsetX = (300 - width * scale) / 2;
         const offsetY = (300 - height * scale) / 2;
 
-        focusedDrawing.strokes.forEach(stroke => {
+        strokes.forEach(stroke => {
             if (stroke.length === 0) return;
             ctx.beginPath();
             ctx.moveTo(

@@ -46,15 +46,15 @@ def collect(label: str, count: int = 1):
         # We need to wait for user to finish.
         wait_for_space("Press SPACE to STOP recording...")
         
-        strokes = recorder.stop()
-        typer.echo(f"Captured {len(strokes)} strokes.")
+        points = recorder.stop()
+        typer.echo(f"Captured {len(points)} points.")
         
-        if not strokes:
-            typer.echo("No strokes detected. Discarding.")
+        if not points:
+            typer.echo("No points detected. Discarding.")
             continue
             
         # Save to DB
-        drawing = Drawing(label=label, strokes=strokes)
+        drawing = Drawing(label=label, points=points)
         db.add(drawing)
         db.commit()
         typer.echo("Saved.")
@@ -103,7 +103,7 @@ def train(model: str = typer.Option("knn", "--model", "-m", help="Model type: kn
     typer.echo(f"Training {model.upper()} model on {len(drawings)} samples...")
     
     classifier = SymbolClassifier(model_type=model)
-    classifier.train([d.strokes for d in drawings], [d.label for d in drawings])
+    classifier.train([d.points for d in drawings], [d.label for d in drawings])
     typer.echo(f"Training complete. Model saved to {classifier.model_path}.")
 
 @app.command()
@@ -134,13 +134,13 @@ def predict(
             recorder.start()
             typer.echo("Rec...")
             wait_for_space("Press SPACE to STOP...")
-            strokes = recorder.stop()
+            points = recorder.stop()
             
-            if not strokes:
-                typer.echo("No strokes.")
+            if not points:
+                typer.echo("No points.")
                 continue
                 
-            predictions = classifier.predict(strokes)
+            predictions = classifier.predict(points)
             
             if not predictions:
                 typer.echo("No predictions returned.")
@@ -175,12 +175,12 @@ def predict(
                 if correct_label:
                     # Save to DB
                     db = next(get_db())
-                    drawing = Drawing(label=correct_label, strokes=strokes)
+                    drawing = Drawing(label=correct_label, points=points)
                     db.add(drawing)
                     db.commit()
                     
                     # Update model
-                    classifier.add_example(strokes, correct_label)
+                    classifier.add_example(points, correct_label)
                     typer.echo(f"Saved example for '{correct_label}' and updated model.")
             
         except KeyboardInterrupt:

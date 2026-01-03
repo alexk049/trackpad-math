@@ -75,12 +75,12 @@ export default function TrainingPage() {
         setShowDataViewer(false);
     };
 
-    const saveStrokes = async (label: string, strokes: any) => {
+    const savePoints = async (label: string, points: any) => {
         try {
             await fetch(`${API_BASE_URL}/api/teach`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ label, strokes })
+                body: JSON.stringify({ label, points })
             });
             fetchLabels();
             if (showDataViewer && selectedLabel === label) {
@@ -132,7 +132,7 @@ export default function TrainingPage() {
                 opened={teachModalOpen}
                 onClose={() => setTeachModalOpen(false)}
                 label={selectedLabel}
-                onSave={saveStrokes}
+                onSave={savePoints}
             />
         </Container>
     );

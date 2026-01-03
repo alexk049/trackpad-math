@@ -134,9 +134,9 @@ export default function EditorPage() {
     };
 
     const handleConfirmRetrain = async (symbol: string) => {
-        console.log(mostRecentState.current?.strokes);
-        if (!mostRecentState.current?.strokes) {
-            setNotification({ title: 'Error', message: 'No stroke data available to learn from.', color: 'red' });
+        console.log(mostRecentState.current?.points);
+        if (!mostRecentState.current?.points) {
+            setNotification({ title: 'Error', message: 'No point data available to learn from.', color: 'red' });
             return;
         }
 
@@ -146,7 +146,7 @@ export default function EditorPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     label: symbol,
-                    strokes: mostRecentState.current?.strokes
+                    points: mostRecentState.current?.points
                 })
             });
             const data = await res.json();
@@ -177,7 +177,7 @@ export default function EditorPage() {
                 </Notification>
             )}
 
-            <Box py="xl">
+            <Box py="sm">
                 <MathInput ref={mfRef} value={latex} onChange={setLatex} container={mathKeyboardContainer as HTMLElement} />
             </Box>
 
@@ -190,7 +190,7 @@ export default function EditorPage() {
                 visible={showSuggestions}
             />
 
-            <Center my="lg">
+            <Center my="sm">
                 <Button
                     size="xl"
                     color={isRecording ? 'red' : 'blue'}
