@@ -1,6 +1,6 @@
 import { Modal, Text, Button } from '@mantine/core';
 import { useRecorder } from '../hooks/useRecorder';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface TeachModalProps {
     opened: boolean;
@@ -10,14 +10,19 @@ interface TeachModalProps {
 }
 
 export function TeachModal({ opened, onClose, label, onSave }: TeachModalProps) {
-    const { state, toggleRecording } = useRecorder();
+    const { isRecording, recordedPoints, toggleRecording } = useRecorder();
+    const lastProcessedPointsRef = useRef<any>(null);
+    const hasRecorded = !!recordedPoints;
 
     // Teach Logic
     useEffect(() => {
-        if (opened && label && state.status === 'finished' && state.points) {
-            onSave(label, state.points);
+        if (opened && label && recordedPoints && recordedPoints.length > 0) {
+            if (recordedPoints !== lastProcessedPointsRef.current) {
+                lastProcessedPointsRef.current = recordedPoints;
+                onSave(label, recordedPoints);
+            }
         }
-    }, [state, opened, label, onSave]);
+    }, [recordedPoints, opened, label, onSave]);
 
     // Space key handler for Teach Modal
     useEffect(() => {
@@ -49,13 +54,13 @@ export function TeachModal({ opened, onClose, label, onSave }: TeachModalProps) 
 
                 <Button
                     size="xl"
-                    color={state.status === 'recording' ? 'red' : 'blue'}
+                    color={isRecording ? 'red' : 'blue'}
                     onClick={toggleRecording}
                 >
-                    {state.status === 'recording' ? 'Stop Recording' : 'Start Recording'}
+                    {isRecording ? 'Stop Recording' : 'Start Recording'}
                 </Button>
 
-                {state.status === 'finished' && (
+                {hasRecorded && (
                     <Text c="green" mt="md" fw={700}>Recorded!</Text>
                 )}
             </div>

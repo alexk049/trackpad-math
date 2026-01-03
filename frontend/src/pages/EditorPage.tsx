@@ -3,16 +3,28 @@ import { API_BASE_URL } from '../config';
 import { Box, Button, Center, Container, Text, Notification } from '@mantine/core';
 import { IconMicrophone } from '@tabler/icons-react';
 import { MathInput } from '../components/MathInput';
-import { useRecorder, type RecorderState } from '../hooks/useRecorder';
+import { useRecorder, type Point } from '../hooks/useRecorder';
 import { SuggestionsBox } from '../components/SuggestionsBox';
 import { useMantineColorScheme } from '@mantine/core';
+
+export interface ClassificationState {
+    status: 'idle' | 'classifying' | 'finished' | 'error';
+    symbol?: string;
+    confidence?: number;
+    candidates?: Array<{ symbol: string; confidence: number }>;
+    message?: string;
+}
 
 export default function EditorPage() {
     const { colorScheme } = useMantineColorScheme();
     const mfRef = useRef<any>(null);
     const [latex, setLatex] = useState('');
-    const { state, toggleRecording, isRecording } = useRecorder(); // Destructure isRecording
-    const mostRecentState = useRef<RecorderState | undefined>(undefined);
+    const { isRecording, recordedPoints, toggleRecording } = useRecorder();
+    const [classificationState, setClassificationState] = useState<ClassificationState>({ status: 'idle' });
+    const classificationWs = useRef<WebSocket | null>(null);
+    const mostRecentPoints = useRef<Point[] | null>(null);
+    const [settings, setSettings] = useState<any>(null);
+
     const [mathKeyboardContainer, setMathKeyboardContainer] = useState<HTMLDivElement | null>(null);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [notification, setNotification] = useState<{ title: string, message: string, color: string } | null>(null);
@@ -28,25 +40,74 @@ export default function EditorPage() {
     }
 
     useEffect(() => {
-        if (state.status !== 'finished') {
+        fetch(`${API_BASE_URL}/api/settings`)
+            .then(res => res.json())
+            .then(data => setSettings(data))
+            .catch(err => console.error("Failed to fetch settings:", err));
+    }, []);
+
+    // Classification WebSocket Setup
+    useEffect(() => {
+        const wsUrl = API_BASE_URL.replace('http', 'ws') + '/ws/record';
+        classificationWs.current = new WebSocket(wsUrl);
+
+        classificationWs.current.onopen = () => console.log('Classification WS Connected');
+        classificationWs.current.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.status === 'finished' || data.status === 'error' || data.status === 'idle') {
+                    setClassificationState(data);
+                }
+            } catch (e) {
+                console.error('Failed to parse Classification WS message', e);
+            }
+        };
+        classificationWs.current.onclose = () => console.log('Classification WS Disconnected');
+
+        return () => {
+            classificationWs.current?.close();
+        };
+    }, []);
+
+    // Trigger classification when points change and save them for retraining
+    useEffect(() => {
+        if (recordedPoints && recordedPoints.length > 0) {
+            mostRecentPoints.current = recordedPoints;
+
+            if (classificationWs.current?.readyState === WebSocket.OPEN) {
+                setClassificationState({ status: 'classifying' });
+                classificationWs.current.send(JSON.stringify({
+                    action: 'classify',
+                    points: recordedPoints
+                }));
+            }
+        }
+    }, [recordedPoints]);
+
+    useEffect(() => {
+        if (classificationState.status !== 'finished' || !classificationState.symbol) {
             return;
         }
+
         // insert symbol
-        if (state.symbol === '/') {
-            //https://mathlive.io/mathfield/guides/virtual-keyboard/#placeholder-tokens
+        if (classificationState.symbol === '/') {
             mfRef.current?.executeCommand(['insert', '\\frac{#@}{#?}']);
         } else {
-            mfRef.current?.executeCommand(['insert', state.symbol]);
+            mfRef.current?.executeCommand(['insert', classificationState.symbol]);
         }
 
-        // update suggestions, if necessary
-        mostRecentState.current = state
-        if (state.candidates && state.candidates.length > 0) {
+        // update suggestions
+        if (classificationState.candidates && classificationState.candidates.length > 0) {
             setShowSuggestions(true);
         } else {
             setShowSuggestions(false);
         }
-    }, [state]);
+
+        // // Auto-restart recording if in auto mode
+        // if (settings?.auto_mode) {
+        //     toggleRecording();
+        // }
+    }, [classificationState, settings, toggleRecording]);
 
     // Wheel listener for cursor navigation, and focus on math field
     useEffect(() => {
@@ -134,8 +195,7 @@ export default function EditorPage() {
     };
 
     const handleConfirmRetrain = async (symbol: string) => {
-        console.log(mostRecentState.current?.points);
-        if (!mostRecentState.current?.points) {
+        if (!mostRecentPoints.current) {
             setNotification({ title: 'Error', message: 'No point data available to learn from.', color: 'red' });
             return;
         }
@@ -146,7 +206,7 @@ export default function EditorPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     label: symbol,
-                    points: mostRecentState.current?.points
+                    points: mostRecentPoints.current
                 })
             });
             const data = await res.json();
@@ -183,7 +243,7 @@ export default function EditorPage() {
 
             {/* Suggestions */}
             <SuggestionsBox
-                candidates={mostRecentState.current?.candidates || []}
+                candidates={classificationState.candidates || []}
                 onSelect={handleSuggestionClick}
                 onConfirmRetrain={handleConfirmRetrain}
                 onClose={() => setShowSuggestions(false)}

@@ -38,3 +38,7 @@ app.include_router(websocket.router)
 #     app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="static")
 # else:
 #     print(f"WARNING: Web dir {WEB_DIR} not found. Static files will not be served.")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

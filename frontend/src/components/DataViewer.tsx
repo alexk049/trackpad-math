@@ -38,11 +38,15 @@ export function DataViewer({ label, drawings, onClose, onDeleteDrawings, onTeach
 
     // Canvas Logic
     useEffect(() => {
-        if (!focusedDrawing || !canvasRef.current) return;
+        if (!canvasRef.current) return;
         const ctx = canvasRef.current.getContext('2d');
         if (!ctx) return;
 
         ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+        if (!focusedDrawing) {
+            return;
+        }
 
         // Theme aware background
         ctx.fillStyle = "transparent";

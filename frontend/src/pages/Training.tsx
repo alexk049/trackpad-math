@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
 import { Button, Group, Title, FileButton, Container } from '@mantine/core';
 import { IconUpload, IconDownload, IconTrash } from '@tabler/icons-react';
@@ -75,7 +75,7 @@ export default function TrainingPage() {
         setShowDataViewer(false);
     };
 
-    const savePoints = async (label: string, points: any) => {
+    const savePoints = useCallback(async (label: string, points: any) => {
         try {
             await fetch(`${API_BASE_URL}/api/teach`, {
                 method: 'POST',
@@ -89,10 +89,10 @@ export default function TrainingPage() {
         } catch (e) {
             console.error(e);
         }
-    };
+    }, [showDataViewer, selectedLabel]);
 
     return (
-        <Container size="xl" onClick={() => setShowDataViewer(false)} h="calc(100vh - 100px)" style={{ display: 'flex', flexDirection: 'column' }} py="md">
+        <Container size="xl" h="calc(100vh - 100px)" style={{ display: 'flex', flexDirection: 'column' }} py="md">
             <Group justify="space-between" mb="lg" align="center" onClick={(e) => e.stopPropagation()}>
                 <Title order={2}>Training Data</Title>
                 <Group>

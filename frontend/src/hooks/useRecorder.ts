@@ -1,17 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
 
-export interface RecorderState {
-    status: 'idle' | 'recording' | 'finished' | 'error' | 'cursor_reset';
-    message?: string;
-    symbol?: string;
-    confidence?: number;
-    candidates?: Array<{ symbol: string; confidence: number }>;
-    points?: Array<{ x: number, y: number, t: number }>;
-    continue_recording?: boolean;
-}
-
-interface Point {
+export interface Point {
     x: number;
     y: number;
     t: number;
@@ -53,21 +43,22 @@ export function segmentStrokes(points: Point[]): Point[][] {
     return strokes;
 }
 
-
 export function useRecorder() {
-    const [state, setState] = useState<RecorderState>({ status: 'idle' });
-    const ws = useRef<WebSocket | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordedPoints, setRecordedPoints] = useState<Point[] | null>(null);
     const [settings, setSettings] = useState<any>(null);
 
+    const ws = useRef<WebSocket | null>(null);
     const isRecordingRef = useRef(false);
-    const ignoreMouseMoveRef = useRef(false);
-    // flattened list of all points in the current recording session
     const pointsRef = useRef<Point[]>([]);
 
-    // We still track lastMoveTime for auto-mode timeout logic (pause detection)
-    const lastMoveTimeRef = useRef<number>(0);
     const startTimeRef = useRef<number>(0);
     const autoModeTimerRef = useRef<number | undefined>(undefined);
+    // Prevent spamming start
+    const isStartingRef = useRef(false);
+    // Ignore initial cursor jump
+    const hasMovedRef = useRef(false);
+    const startPosRef = useRef<{ x: number, y: number } | null>(null);
 
     useEffect(() => {
         fetch(`${API_BASE_URL}/api/settings`)
@@ -76,24 +67,11 @@ export function useRecorder() {
             .catch(err => console.error("Failed to fetch settings:", err));
     }, []);
 
-    const sendClassificationRequest = useCallback(() => {
-        if (!ws.current) return;
-
-        const allPoints = pointsRef.current;
-        if (allPoints.length === 0) return;
-
-        console.log(`Sending classification request. Points: ${allPoints.length}`);
-        ws.current.send(JSON.stringify({
-            action: 'classify',
-            points: allPoints
-        }));
-
-        // Reset local strokes
-        pointsRef.current = [];
-    }, []);
-
     const startRecordingSequence = useCallback(() => {
-        if (!ws.current) return;
+        if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+            console.warn("WS not connected, cannot start recording sequence");
+            return;
+        }
         ws.current.send(JSON.stringify({
             action: 'set_cursor',
             x: Math.round(window.screenX + window.innerWidth / 2),
@@ -102,14 +80,14 @@ export function useRecorder() {
     }, []);
 
     const beginRecording = useCallback(() => {
-        if (!ws.current) return;
-
+        isStartingRef.current = false;
         pointsRef.current = [];
         startTimeRef.current = Date.now();
-        lastMoveTimeRef.current = startTimeRef.current;
+        setRecordedPoints(null);
         isRecordingRef.current = true;
-
-        setState(prev => ({ ...prev, status: 'recording', message: 'Recording...' }));
+        hasMovedRef.current = false;
+        startPosRef.current = null;
+        setIsRecording(true);
     }, []);
 
     const stopRecording = useCallback(() => {
@@ -117,96 +95,80 @@ export function useRecorder() {
             clearTimeout(autoModeTimerRef.current);
         }
         isRecordingRef.current = false;
-        setState(prev => ({ ...prev, status: 'idle', message: 'Stopped' }));
+        setIsRecording(false);
 
-        sendClassificationRequest();
-    }, [sendClassificationRequest]);
+        //in auto mode, only set recorded points when the timeout occurs
+        if (!settings?.auto_mode) {
+            const finalPoints = [...pointsRef.current];
+            setRecordedPoints(finalPoints.length > 0 ? finalPoints : null);
+        }
+
+        pointsRef.current = [];
+    }, []);
 
     const handleAutoModeTimeout = useCallback(() => {
-        if (!isRecordingRef.current || ignoreMouseMoveRef.current) return;
+        if (!isRecordingRef.current) return;
 
-        console.log("Auto-mode timeout, classifying...");
-        if (autoModeTimerRef.current) {
-            clearTimeout(autoModeTimerRef.current);
-        }
-        sendClassificationRequest();
-
-    }, [sendClassificationRequest]);
-
+        const finalPoints = [...pointsRef.current];
+        setRecordedPoints(finalPoints.length > 0 ? finalPoints : null);
+        startRecordingSequence();
+    }, [startRecordingSequence]);
 
     useEffect(() => {
-        // WebSocket Setup
         const wsUrl = API_BASE_URL.replace('http', 'ws') + '/ws/record';
         ws.current = new WebSocket(wsUrl);
 
-        ws.current.onopen = () => console.log('WS Connected');
-
+        ws.current.onopen = () => console.log('Recorder WS Connected');
         ws.current.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-
                 if (data.status === 'cursor_reset') {
-                    ignoreMouseMoveRef.current = false;
-                    console.log("Cursor reset, beginning recording sequence");
                     beginRecording();
-                    return;
                 }
-
-                setState(data); // This updates UI
-
-                // Protocol:
-                // If we get a "finished" result (classification), check if we are in valid auto-mode state to continue.
-                if (data.status === 'finished') {
-                    if (settings?.auto_mode) {
-                        if (isRecordingRef.current) { // Check if user hasn't manually stopped
-                            ignoreMouseMoveRef.current = true;
-                            startRecordingSequence();
-                        }
-                    } else {
-                        isRecordingRef.current = false; // Stop recording
-                    }
-                }
-
             } catch (e) {
-                console.error('Failed to parse WS message', e);
+                console.error('Failed to parse Recorder WS message', e);
             }
         };
-
-        ws.current.onclose = () => console.log('WS Disconnected');
+        ws.current.onclose = () => console.log('Recorder WS Disconnected');
 
         return () => {
             ws.current?.close();
         };
-    }, [settings, beginRecording]); // Re-bind if settings change? Maybe just read settings from ref or state.
-
+    }, [beginRecording]);
 
     useEffect(() => {
-        const handleLeftClick = () => {
-            if (isRecordingRef.current) {
-                setState((s) => ({
-                    status: 'finished',
-                    symbol: '.',
-                    confidence: 1,
-                    candidates: [],
-                    continue_recording: s.continue_recording
-                }))
-            }
-        }
         const handleMouseMove = (e: MouseEvent) => {
-            if (!isRecordingRef.current || ignoreMouseMoveRef.current) return;
+            if (!isRecordingRef.current) {
+                return;
+            }
+
+            const x = e.screenX;
+            const y = e.screenY;
+
+            if (!hasMovedRef.current) {
+                if (!startPosRef.current) {
+                    startPosRef.current = { x, y };
+                    return;
+                }
+                const dx = x - startPosRef.current.x;
+                const dy = y - startPosRef.current.y;
+                if (dx * dx + dy * dy < 25) { // 5px threshold
+                    return;
+                }
+                hasMovedRef.current = true;
+                // Add the start point
+                pointsRef.current.push({
+                    x: startPosRef.current.x,
+                    y: startPosRef.current.y,
+                    t: Date.now() - startTimeRef.current
+                });
+            }
 
             const now = Date.now();
             const relativeT = now - startTimeRef.current;
 
-            //could also use e.clientX/Y here
-            const x = e.screenX;
-            const y = e.screenY;
-
             pointsRef.current.push({ x, y, t: relativeT });
-            lastMoveTimeRef.current = now;
 
-            // Auto Mode Timeout logic (Pause detection)
-            // This is separate from stroke segmentation. This detects when the user has "finished" the character.
             if (settings?.auto_mode) {
                 if (autoModeTimerRef.current) {
                     clearTimeout(autoModeTimerRef.current);
@@ -217,23 +179,21 @@ export function useRecorder() {
         };
 
         window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('click', handleLeftClick);
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('click', handleLeftClick);
             if (autoModeTimerRef.current) clearTimeout(autoModeTimerRef.current);
         };
-    }, [settings, handleAutoModeTimeout]);
+    }, [settings, handleAutoModeTimeout, stopRecording]);
 
-    const toggleRecording = () => {
+    const toggleRecording = useCallback(() => {
+        if (isStartingRef.current) return;
         if (isRecordingRef.current) {
-            // Stop
             stopRecording();
         } else {
-            // Start
+            isStartingRef.current = true;
             startRecordingSequence();
         }
-    };
+    }, [startRecordingSequence, stopRecording]);
 
-    return { state, toggleRecording, isRecording: isRecordingRef.current };
+    return { isRecording, recordedPoints, toggleRecording };
 }

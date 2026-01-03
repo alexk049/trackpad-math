@@ -20,7 +20,6 @@ class ToggleResponse(BaseModel):
     candidates: Optional[list] = None
     points: Optional[list] = None
     message: Optional[str] = None
-    continue_recording: Optional[bool] = False
 
 @router.websocket("/ws/record")
 async def websocket_record(websocket: WebSocket):
@@ -48,16 +47,6 @@ async def websocket_record(websocket: WebSocket):
                 points = data.get('points')
                 if points:
                     await process_classification(points)
-                else: 
-                     # Fallback to strokes for backward compatibility if needed
-                     # Actually, if we want to be truly flat, we should flatten strokes or just handle points
-                     strokes = data.get('strokes')
-                     if strokes:
-                        # Flatten strokes back to points if someone sends old format
-                        flat_points = []
-                        for s in strokes:
-                            flat_points.extend(s)
-                        await process_classification(flat_points)
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
@@ -78,8 +67,8 @@ async def process_classification(points):
     predictions = await run_in_threadpool(classifier.predict, points)
     
     if not predictions:
-         await manager.broadcast({"status": "idle", "message": "No prediction"})
-         return
+        await manager.broadcast({"status": "idle", "message": "No prediction"})
+        return
          
     pred, conf = predictions[0]
     candidates = [{"symbol": p[0], "confidence": p[1]} for p in predictions if p[1] > 0 and p[0] != pred]
@@ -89,8 +78,7 @@ async def process_classification(points):
         symbol=pred,
         confidence=conf,
         candidates=candidates,
-        points=points,
-        continue_recording=False # Client decides whether to continue
+        points=points
     )
     await manager.broadcast(response.dict())
 
