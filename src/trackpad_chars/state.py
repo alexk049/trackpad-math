@@ -6,12 +6,12 @@ from typing import Optional
 # --- Models ---
 class Settings(BaseModel):
     auto_mode: bool
-    pause_threshold: float # seconds
+    pause_threshold: int # milliseconds
 
 # --- Global Components ---
 
 # Global settings state
-current_settings = Settings(auto_mode=True, pause_threshold=0.2) 
+current_settings = Settings(auto_mode=True, pause_threshold=1000) 
 
 # Classifier Instance
 classifier = SymbolClassifier(model_type="knn") 

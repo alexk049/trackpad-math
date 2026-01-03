@@ -183,9 +183,9 @@ def segment_strokes(points: List[Dict[str, float]]) -> List[List[Dict[str, float
     median = float(np.median(deltas))
     
     # Threshold calculation
-    # Max of (10 * median) or (0.15s)
-    # 0.15s to match frontend implementation plan heuristic
-    threshold = max(median * 10, 0.15)
+    # Max of (10 * median) or (150ms)
+    # 150ms to match frontend implementation plan heuristic
+    threshold = max(median * 10, 150)
     
     strokes = []
     current_stroke = [points[0]]

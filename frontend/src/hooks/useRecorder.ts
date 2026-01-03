@@ -35,7 +35,7 @@ export function segmentStrokes(points: Point[]): Point[][] {
         ? sortedDeltas[mid]
         : (sortedDeltas[mid - 1] + sortedDeltas[mid]) / 2;
 
-    const threshold = Math.max(median * 10, 0.15);
+    const threshold = Math.max(median * 10, 150);
 
     const strokes: Point[][] = [];
     let currentStroke: Point[] = [points[0]];
@@ -105,7 +105,7 @@ export function useRecorder() {
         if (!ws.current) return;
 
         pointsRef.current = [];
-        startTimeRef.current = Date.now() / 1000;
+        startTimeRef.current = Date.now();
         lastMoveTimeRef.current = startTimeRef.current;
         isRecordingRef.current = true;
 
@@ -195,7 +195,7 @@ export function useRecorder() {
         const handleMouseMove = (e: MouseEvent) => {
             if (!isRecordingRef.current || ignoreMouseMoveRef.current) return;
 
-            const now = Date.now() / 1000;
+            const now = Date.now();
             const relativeT = now - startTimeRef.current;
 
             //could also use e.clientX/Y here
@@ -211,8 +211,8 @@ export function useRecorder() {
                 if (autoModeTimerRef.current) {
                     clearTimeout(autoModeTimerRef.current);
                 }
-                const pause = settings.pause_threshold || 1.0;
-                autoModeTimerRef.current = setTimeout(handleAutoModeTimeout, pause * 1000);
+                const pause = settings.pause_threshold || 1000;
+                autoModeTimerRef.current = setTimeout(handleAutoModeTimeout, pause);
             }
         };
 

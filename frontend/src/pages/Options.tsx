@@ -3,7 +3,7 @@ import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useM
 import { API_BASE_URL } from '../config';
 
 export default function OptionsPage() {
-    const [settings, setSettings] = useState({ auto_mode: false, pause_threshold: 1.0 });
+    const [settings, setSettings] = useState({ auto_mode: false, pause_threshold: 1000 });
     const { colorScheme, setColorScheme } = useMantineColorScheme();
 
     useEffect(() => {
@@ -56,12 +56,13 @@ export default function OptionsPage() {
 
                 <Card withBorder>
                     <Text fw={500} mb="xs">Pause Threshold</Text>
-                    <Text size="sm" c="dimmed" mb="md">Time to wait before processing a stroke (seconds)</Text>
+                    <Text size="sm" c="dimmed" mb="md">Time to wait before processing a stroke (ms)</Text>
                     <Slider
-                        min={0.2} max={3.0} step={0.1}
+                        min={200} max={3000} step={50}
                         value={settings.pause_threshold}
+                        onChange={(val) => setSettings({ ...settings, pause_threshold: val })}
                         onChangeEnd={(val) => update({ pause_threshold: val })}
-                        label={(val) => `${val}s`}
+                        label={(val) => `${val}ms`}
                     />
                 </Card>
             </Stack>

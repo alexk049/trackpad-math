@@ -73,7 +73,7 @@ class DrawingRecorder:
         if self._resetting:
             return
 
-        now = time.time()
+        now = time.time() * 1000
         if self.start_time is None:
             self.start_time = now
             self.last_move_time = now
@@ -154,5 +154,5 @@ class DrawingRecorder:
             with self._lock:
                 # Clear points on cursor reset to avoid connecting jumps
                 self.points = []
-                self.last_move_time = time.time()
+                self.last_move_time = time.time() * 1000
                 pass
