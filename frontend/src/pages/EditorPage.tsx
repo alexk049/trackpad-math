@@ -23,6 +23,10 @@ export default function EditorPage() {
     const [classificationState, setClassificationState] = useState<ClassificationState>({ status: 'idle' });
     const classificationWs = useRef<WebSocket | null>(null);
     const mostRecentPoints = useRef<Point[] | null>(null);
+    const wheelAccumulatorX = useRef(0);
+    const wheelAccumulatorY = useRef(0);
+    const lastWheelTime = useRef(0);
+    const lastWheelAxis = useRef<'x' | 'y' | null>(null);
     const [settings, setSettings] = useState<any>(null);
 
     const [mathKeyboardContainer, setMathKeyboardContainer] = useState<HTMLDivElement | null>(null);
@@ -92,6 +96,12 @@ export default function EditorPage() {
         // insert symbol
         if (classificationState.symbol === '/') {
             mfRef.current?.executeCommand(['insert', '\\frac{#@}{#?}']);
+        } else if (classificationState.symbol === 'square root') {
+            mfRef.current?.executeCommand(['insert', '\\sqrt{#@}']);
+        } else if (classificationState.symbol === 'integral') {
+            mfRef.current?.executeCommand(['insert', '\\int_{#?}^{#?} #@']);
+        } else if (classificationState.symbol === 'summation') {
+            mfRef.current?.executeCommand(['insert', '\\sum_{#?}^{#?} #@']);
         } else {
             mfRef.current?.executeCommand(['insert', classificationState.symbol]);
         }
@@ -116,8 +126,16 @@ export default function EditorPage() {
                 return;
             }
 
-            //prevent default for page scroll might be annoying if content overflows.
+            //prevent default for page scroll
             e.preventDefault();
+
+            const now = Date.now();
+            if (now - lastWheelTime.current > 150) {
+                wheelAccumulatorX.current = 0;
+                wheelAccumulatorY.current = 0;
+                lastWheelAxis.current = null;
+            }
+            lastWheelTime.current = now;
 
             let dx = e.deltaX;
             let dy = e.deltaY;
@@ -127,23 +145,41 @@ export default function EditorPage() {
                 dy = 0;
             }
 
-            // Hardcoded sensitivity for now or fetch from settings context if we had one
-            // Default 10 from original
-            const sensitivity = 10;
-            const threshold = Math.max(0.5, 40 / sensitivity);
+            const thresholdX = settings?.equation_scroll_x_sensitivity ? 400 / settings.equation_scroll_x_sensitivity : 20;
+            const thresholdY = settings?.equation_scroll_y_sensitivity ? 400 / settings.equation_scroll_y_sensitivity : 20;
 
             if (mfRef.current) {
                 if (Math.abs(dx) > Math.abs(dy)) {
-                    if (dx < -threshold) {
-                        mfRef.current.executeCommand('moveToPreviousChar');
-                    } else if (dx > threshold) {
-                        mfRef.current.executeCommand('moveToNextChar');
+                    // X axis dominant
+                    if (lastWheelAxis.current !== 'x') {
+                        wheelAccumulatorX.current = 0;
+                        wheelAccumulatorY.current = 0;
+                        lastWheelAxis.current = 'x';
                     }
-                } else {
-                    if (dy < -threshold) {
-                        mfRef.current.executeCommand('moveUp');
-                    } else if (dy > threshold) {
-                        mfRef.current.executeCommand('moveDown');
+                    wheelAccumulatorX.current += dx;
+                    const steps = Math.floor(Math.abs(wheelAccumulatorX.current) / thresholdX);
+                    if (steps > 0) {
+                        const direction = Math.sign(wheelAccumulatorX.current);
+                        for (let i = 0; i < steps; i++) {
+                            mfRef.current.executeCommand(direction > 0 ? 'moveToNextChar' : 'moveToPreviousChar');
+                        }
+                        wheelAccumulatorX.current -= steps * thresholdX * direction;
+                    }
+                } else if (Math.abs(dy) > Math.abs(dx)) {
+                    // Y axis dominant
+                    if (lastWheelAxis.current !== 'y') {
+                        wheelAccumulatorX.current = 0;
+                        wheelAccumulatorY.current = 0;
+                        lastWheelAxis.current = 'y';
+                    }
+                    wheelAccumulatorY.current += dy;
+                    const steps = Math.floor(Math.abs(wheelAccumulatorY.current) / thresholdY);
+                    if (steps > 0) {
+                        const direction = Math.sign(wheelAccumulatorY.current);
+                        for (let i = 0; i < steps; i++) {
+                            mfRef.current.executeCommand(direction > 0 ? 'moveDown' : 'moveUp');
+                        }
+                        wheelAccumulatorY.current -= steps * thresholdY * direction;
                     }
                 }
             }
@@ -153,13 +189,11 @@ export default function EditorPage() {
         handleFocus();
 
         window.addEventListener('wheel', handleWheel, { passive: false });
-        // document.addEventListener('click', handleFocus);
 
         return () => {
-            // document.removeEventListener('click', handleFocus);
             window.removeEventListener('wheel', handleWheel);
         };
-    }, []);
+    }, [settings]);
 
     // Use effect to clean up recording on page unload/visibility change
     useEffect(() => {

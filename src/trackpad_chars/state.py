@@ -5,13 +5,12 @@ from typing import Optional
 
 # --- Models ---
 class Settings(BaseModel):
-    auto_mode: bool
-    pause_threshold: int # milliseconds
+    auto_mode: bool = True
+    pause_threshold: int = 1000 # milliseconds
+    equation_scroll_x_sensitivity: int = 20
+    equation_scroll_y_sensitivity: int = 20
 
 # --- Global Components ---
-
-# Global settings state
-current_settings = Settings(auto_mode=True, pause_threshold=1000) 
 
 # Classifier Instance
 classifier = SymbolClassifier(model_type="knn") 

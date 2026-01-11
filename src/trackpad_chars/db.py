@@ -3,7 +3,7 @@ import uuid
 import datetime
 from typing import List, Dict, Any, Optional
 
-from sqlalchemy import create_engine, Column, String, DateTime, func, Integer, Uuid, JSON
+from sqlalchemy import create_engine, Column, String, DateTime, func, Integer, Uuid, JSON, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from dotenv import load_dotenv
 
@@ -25,6 +25,14 @@ class Drawing(Base):
     timestamp: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     # points is a flat list of points. Each point is {x, y, t}
     points: Mapped[List[Dict[str, float]]] = mapped_column(JSON)
+
+class DBSetting(Base):
+    __tablename__ = "settings"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    auto_mode: Mapped[bool] = mapped_column(Boolean, default=True)
+    pause_threshold: Mapped[int] = mapped_column(Integer, default=1000)
+    equation_scroll_x_sensitivity: Mapped[int] = mapped_column(Integer, default=20)
+    equation_scroll_y_sensitivity: Mapped[int] = mapped_column(Integer, default=20)
 
 def init_db():
     Base.metadata.create_all(bind=engine)

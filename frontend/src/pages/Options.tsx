@@ -3,7 +3,12 @@ import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useM
 import { API_BASE_URL } from '../config';
 
 export default function OptionsPage() {
-    const [settings, setSettings] = useState({ auto_mode: false, pause_threshold: 1000 });
+    const [settings, setSettings] = useState({
+        auto_mode: false,
+        pause_threshold: 1000,
+        equation_scroll_x_sensitivity: 20,
+        equation_scroll_y_sensitivity: 20
+    });
     const { colorScheme, setColorScheme } = useMantineColorScheme();
 
     useEffect(() => {
@@ -63,6 +68,28 @@ export default function OptionsPage() {
                         onChange={(val) => setSettings({ ...settings, pause_threshold: val })}
                         onChangeEnd={(val) => update({ pause_threshold: val })}
                         label={(val) => `${val}ms`}
+                    />
+                </Card>
+
+                <Card withBorder>
+                    <Text fw={500} mb="xs">Equation Scroll X Sensitivity</Text>
+                    <Text size="sm" c="dimmed" mb="md">How fast the cursor moves horizontally when scrolling</Text>
+                    <Slider
+                        min={1} max={100} step={1}
+                        value={settings.equation_scroll_x_sensitivity}
+                        onChange={(val) => setSettings({ ...settings, equation_scroll_x_sensitivity: val })}
+                        onChangeEnd={(val) => update({ equation_scroll_x_sensitivity: val })}
+                    />
+                </Card>
+
+                <Card withBorder>
+                    <Text fw={500} mb="xs">Equation Scroll Y Sensitivity</Text>
+                    <Text size="sm" c="dimmed" mb="md">How fast the cursor moves vertically when scrolling</Text>
+                    <Slider
+                        min={1} max={100} step={1}
+                        value={settings.equation_scroll_y_sensitivity}
+                        onChange={(val) => setSettings({ ...settings, equation_scroll_y_sensitivity: val })}
+                        onChangeEnd={(val) => update({ equation_scroll_y_sensitivity: val })}
                     />
                 </Card>
             </Stack>

@@ -1,14 +1,10 @@
-import asyncio
 import json
-import anyio
-from typing import Optional, List, Dict, Callable, Awaitable
+from typing import Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.concurrency import run_in_threadpool
-from trackpad_chars.state import classifier, current_settings
+from trackpad_chars.state import classifier
 from trackpad_chars.socket_manager import manager
-from trackpad_chars import state
-from trackpad_chars.processing import segment_strokes
 from pynput import mouse
 
 router = APIRouter()
