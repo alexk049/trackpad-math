@@ -88,23 +88,31 @@ export default function EditorPage() {
         }
     }, [recordedPoints]);
 
+    const insertSymbol = (symbol: string) => {
+        if (symbol === '/') {
+            mfRef.current?.executeCommand(['insert', '\\frac{#@}{#?}']);
+        } else if (symbol === 'square root') {
+            mfRef.current?.executeCommand(['insert', '\\sqrt{#@}']);
+        } else if (symbol === 'integral') {
+            mfRef.current?.executeCommand(['insert', '\\int_{#?}^{#?} #@']);
+        } else if (symbol === 'summation') {
+            mfRef.current?.executeCommand(['insert', '\\sum_{#?}^{#?} #@']);
+        } else if (symbol === 'plus minus') {
+            mfRef.current?.executeCommand(['insert', '\\pm']);
+        } else if (symbol === '^') {
+            mfRef.current?.executeCommand(['insert', '^{#?}']);
+        } else {
+            mfRef.current?.executeCommand(['insert', symbol]);
+        }
+    };
+
     useEffect(() => {
         if (classificationState.status !== 'finished' || !classificationState.symbol) {
             return;
         }
 
         // insert symbol
-        if (classificationState.symbol === '/') {
-            mfRef.current?.executeCommand(['insert', '\\frac{#@}{#?}']);
-        } else if (classificationState.symbol === 'square root') {
-            mfRef.current?.executeCommand(['insert', '\\sqrt{#@}']);
-        } else if (classificationState.symbol === 'integral') {
-            mfRef.current?.executeCommand(['insert', '\\int_{#?}^{#?} #@']);
-        } else if (classificationState.symbol === 'summation') {
-            mfRef.current?.executeCommand(['insert', '\\sum_{#?}^{#?} #@']);
-        } else {
-            mfRef.current?.executeCommand(['insert', classificationState.symbol]);
-        }
+        insertSymbol(classificationState.symbol);
 
         // update suggestions
         if (classificationState.candidates && classificationState.candidates.length > 0) {
@@ -225,7 +233,7 @@ export default function EditorPage() {
 
     const handleSuggestionClick = (sym: string) => {
         mfRef.current?.executeCommand(['deleteBackward']);
-        mfRef.current?.executeCommand(['insert', sym]);
+        insertSymbol(sym);
     };
 
     const handleConfirmRetrain = async (symbol: string) => {

@@ -1,6 +1,7 @@
 import { ActionIcon, Box, Button, Chip, Group, Select, Text } from '@mantine/core';
 import { IconCheck, IconX } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
+import { API_BASE_URL } from '../config';
 
 interface SuggestionsBoxProps {
     candidates: { symbol: string; confidence: number }[];
@@ -18,7 +19,7 @@ export function SuggestionsBox({ candidates, onSelect, onConfirmRetrain, onClose
 
     useEffect(() => {
         if (isOtherActive && allSymbols.length === 0) {
-            fetch('/api/labels')
+            fetch(`${API_BASE_URL}/api/labels`)
                 .then(res => res.json())
                 .then(data => {
                     const sorted = data.map((d: any) => d.label).sort();
