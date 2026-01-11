@@ -18,7 +18,7 @@ export interface ClassificationState {
 export default function EditorPage() {
     const { colorScheme } = useMantineColorScheme();
     const mfRef = useRef<any>(null);
-    const [latex, setLatex] = useState('');
+    const [latex, setLatex] = useState(() => localStorage.getItem('equation_latex') || '');
     const { isRecording, recordedPoints, toggleRecording } = useRecorder();
     const [classificationState, setClassificationState] = useState<ClassificationState>({ status: 'idle' });
     const classificationWs = useRef<WebSocket | null>(null);
@@ -49,6 +49,10 @@ export default function EditorPage() {
             .then(data => setSettings(data))
             .catch(err => console.error("Failed to fetch settings:", err));
     }, []);
+
+    useEffect(() => {
+        localStorage.setItem('equation_latex', latex);
+    }, [latex]);
 
     // Classification WebSocket Setup
     useEffect(() => {
