@@ -1,10 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from trackpad_chars.model import SymbolClassifier
 import anyio
 from typing import Optional
 
 # --- Models ---
 class Settings(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     auto_mode: bool = True
     pause_threshold: int = 1000 # milliseconds
     equation_scroll_x_sensitivity: int = 20
