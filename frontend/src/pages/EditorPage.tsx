@@ -55,7 +55,7 @@ export default function EditorPage() {
         const wsUrl = API_BASE_URL.replace('http', 'ws') + '/ws/record';
         classificationWs.current = new WebSocket(wsUrl);
 
-        classificationWs.current.onopen = () => console.log('Classification WS Connected');
+        // classificationWs.current.onopen = () => console.log('Classification WS Connected');
         classificationWs.current.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
@@ -66,7 +66,7 @@ export default function EditorPage() {
                 console.error('Failed to parse Classification WS message', e);
             }
         };
-        classificationWs.current.onclose = () => console.log('Classification WS Disconnected');
+        // classificationWs.current.onclose = () => console.log('Classification WS Disconnected');
 
         return () => {
             classificationWs.current?.close();

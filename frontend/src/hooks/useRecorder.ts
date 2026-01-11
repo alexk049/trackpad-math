@@ -120,7 +120,7 @@ export function useRecorder(manualMode: boolean = false) {
         const wsUrl = API_BASE_URL.replace('http', 'ws') + '/ws/record';
         ws.current = new WebSocket(wsUrl);
 
-        ws.current.onopen = () => console.log('Recorder WS Connected');
+        // ws.current.onopen = () => console.log('Recorder WS Connected');
         ws.current.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
@@ -131,7 +131,7 @@ export function useRecorder(manualMode: boolean = false) {
                 console.error('Failed to parse Recorder WS message', e);
             }
         };
-        ws.current.onclose = () => console.log('Recorder WS Disconnected');
+        // ws.current.onclose = () => console.log('Recorder WS Disconnected');
 
         return () => {
             ws.current?.close();
