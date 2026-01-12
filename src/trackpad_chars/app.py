@@ -20,11 +20,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Path to web assets
-# WEB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../..", "frontend", "dist"))
-# if not os.path.exists(WEB_DIR):
-#     print(f"WARNING: Web dir {WEB_DIR} does not exist. Did you run 'npm run build'?")
-
 # Initialize DB
 init_db()
 
@@ -32,12 +27,6 @@ init_db()
 app.include_router(settings.router)
 app.include_router(data.router)
 app.include_router(websocket.router)
-
-# Mount static files for the frontend (must be last to avoid catching API routes)
-# if os.path.exists(WEB_DIR):
-#     app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="static")
-# else:
-#     print(f"WARNING: Web dir {WEB_DIR} not found. Static files will not be served.")
 
 if __name__ == "__main__":
     import uvicorn

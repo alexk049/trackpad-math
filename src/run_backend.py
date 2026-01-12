@@ -1,5 +1,10 @@
-import os
-import sys
+"""
+Entry point for the backend server. This script initializes and runs the Uvicorn server, 
+ensuring compatibility with multiprocessing when bundled as an executable.
+
+Keeps application specific code in app.py from including deployment specific code
+like freeze_support().
+"""
 import multiprocessing
 import uvicorn
 from trackpad_chars.app import app
