@@ -147,18 +147,24 @@ export function useRecorder(manualMode: boolean = false) {
             const x = e.screenX;
             const y = e.screenY;
 
+            // Ignore initial cursor jitter/jump after programmatic centering
             if (!hasMovedRef.current) {
                 if (!startPosRef.current) {
+                    // Initialize start position on first move event
                     startPosRef.current = { x, y };
                     return;
                 }
+
                 const dx = x - startPosRef.current.x;
                 const dy = y - startPosRef.current.y;
-                if (dx * dx + dy * dy < 25) { // 5px threshold
+                // Only start recording once the user has moved at least 5px
+                // This prevents "flicker" points from the OS centering the cursor
+                if (dx * dx + dy * dy < 25) {
                     return;
                 }
+
                 hasMovedRef.current = true;
-                // Add the start point
+                // Retrospectively add the very first point so we don't lose the start of the stroke
                 pointsRef.current.push({
                     x: startPosRef.current.x,
                     y: startPosRef.current.y,
@@ -180,9 +186,36 @@ export function useRecorder(manualMode: boolean = false) {
             }
         };
 
+        const handleMouseDown = (e: MouseEvent) => {
+            if (!isRecordingRef.current) {
+                return;
+            }
+
+            const x = e.screenX;
+            const y = e.screenY;
+            const now = Date.now();
+            const relativeT = now - startTimeRef.current;
+
+            if (!hasMovedRef.current) {
+                hasMovedRef.current = true;
+            }
+
+            pointsRef.current.push({ x, y, t: relativeT });
+
+            if (isAuto) {
+                if (autoModeTimerRef.current) {
+                    clearTimeout(autoModeTimerRef.current);
+                }
+                const pause = settings.pause_threshold || 1000;
+                autoModeTimerRef.current = setTimeout(handleAutoModeTimeout, pause);
+            }
+        };
+
         window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mousedown', handleMouseDown);
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mousedown', handleMouseDown);
             if (autoModeTimerRef.current) clearTimeout(autoModeTimerRef.current);
         };
     }, [settings, handleAutoModeTimeout, stopRecording]);

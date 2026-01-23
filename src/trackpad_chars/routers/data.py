@@ -25,7 +25,7 @@ def get_labels(db: Session = Depends(get_db)):
     # User requested ALL trainable symbols to be present
     all_symbols = [str(i) for i in range(10)] + \
                   [chr(i) for i in range(ord('a'), ord('z')+1)] + \
-                  ['summation', 'square root', 'integral', '/', '+', '-', '(', ')', '=', 'plus minus', '^'] 
+                  ['summation', 'square root', 'integral', '/', '+', '-', '(', ')', '=', 'plus minus', '^', '.'] 
     
     final_list = []
     # Merge existing counts
