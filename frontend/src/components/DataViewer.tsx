@@ -73,20 +73,80 @@ export function DataViewer({ label, drawings, onClose, onDeleteDrawings, onTeach
         const offsetX = (300 - width * scale) / 2;
         const offsetY = (300 - height * scale) / 2;
 
+        const drawArrowhead = (ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, size: number = 8) => {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-size, -size * 0.6);
+            ctx.lineTo(-size, size * 0.6);
+            ctx.closePath();
+            ctx.fillStyle = ctx.strokeStyle;
+            ctx.fill();
+            ctx.restore();
+        };
+
         strokes.forEach(stroke => {
             if (stroke.length === 0) return;
-            ctx.beginPath();
-            ctx.moveTo(
-                (stroke[0].x - minX) * scale + offsetX,
-                (stroke[0].y - minY) * scale + offsetY
-            );
-            for (let i = 1; i < stroke.length; i++) {
-                ctx.lineTo(
-                    (stroke[i].x - minX) * scale + offsetX,
-                    (stroke[i].y - minY) * scale + offsetY
+
+            // Draw the line (or a dot if only one point)
+            if (stroke.length === 1) {
+                const x = (stroke[0].x - minX) * scale + offsetX;
+                const y = (stroke[0].y - minY) * scale + offsetY;
+                ctx.beginPath();
+                ctx.arc(x, y, ctx.lineWidth * 1.2, 0, Math.PI * 2);
+                ctx.fillStyle = '#fab005'; // Orange for dots
+                ctx.fill();
+            } else {
+                ctx.beginPath();
+                ctx.moveTo(
+                    (stroke[0].x - minX) * scale + offsetX,
+                    (stroke[0].y - minY) * scale + offsetY
                 );
+                for (let i = 1; i < stroke.length; i++) {
+                    ctx.lineTo(
+                        (stroke[i].x - minX) * scale + offsetX,
+                        (stroke[i].y - minY) * scale + offsetY
+                    );
+                }
+                ctx.stroke();
+
+                // Draw arrowheads along the path
+                let distanceSinceLastArrow = 15; // Start with a small offset
+                const arrowSpacing = 40; // Pixels between arrows
+
+                for (let i = 1; i < stroke.length; i++) {
+                    const x1 = (stroke[i - 1].x - minX) * scale + offsetX;
+                    const y1 = (stroke[i - 1].y - minY) * scale + offsetY;
+                    const x2 = (stroke[i].x - minX) * scale + offsetX;
+                    const y2 = (stroke[i].y - minY) * scale + offsetY;
+
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const segmentLen = Math.sqrt(dx * dx + dy * dy);
+
+                    if (segmentLen === 0) continue;
+
+                    distanceSinceLastArrow += segmentLen;
+
+                    if (distanceSinceLastArrow >= arrowSpacing) {
+                        const angle = Math.atan2(dy, dx);
+                        drawArrowhead(ctx, x2, y2, angle);
+                        distanceSinceLastArrow = 0;
+                    }
+                }
+
+                // Always ensure an arrow at the end of the stroke if it's long enough
+                const last = stroke[stroke.length - 1];
+                const prev = stroke[stroke.length - 2];
+                const x1 = (prev.x - minX) * scale + offsetX;
+                const y1 = (prev.y - minY) * scale + offsetY;
+                const x2 = (last.x - minX) * scale + offsetX;
+                const y2 = (last.y - minY) * scale + offsetY;
+                const angle = Math.atan2(y2 - y1, x2 - x1);
+                drawArrowhead(ctx, x2, y2, angle);
             }
-            ctx.stroke();
         });
     }, [focusedDrawing]);
 
