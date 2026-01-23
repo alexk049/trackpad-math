@@ -4,7 +4,7 @@ import { Box, Button, Center, Container, Text, Notification } from '@mantine/cor
 import { IconMicrophone } from '@tabler/icons-react';
 import { MathInput } from '../components/MathInput';
 import { useRecorder, type Point } from '../hooks/useRecorder';
-import { SuggestionsBox } from '../components/SuggestionsBox';
+import { RecordingOverlay } from '../components/RecordingOverlay';
 import { useMantineColorScheme } from '@mantine/core';
 
 export interface ClassificationState {
@@ -19,7 +19,7 @@ export default function EditorPage() {
     const { colorScheme } = useMantineColorScheme();
     const mfRef = useRef<any>(null);
     const [latex, setLatex] = useState(() => localStorage.getItem('equation_latex') || '');
-    const { isRecording, recordedPoints, toggleRecording } = useRecorder();
+    const { isRecording, recordedPoints, toggleRecording, setIsPaused } = useRecorder();
     const [classificationState, setClassificationState] = useState<ClassificationState>({ status: 'idle' });
     const classificationWs = useRef<WebSocket | null>(null);
     const mostRecentPoints = useRef<Point[] | null>(null);
@@ -28,9 +28,9 @@ export default function EditorPage() {
     const lastWheelTime = useRef(0);
     const lastWheelAxis = useRef<'x' | 'y' | null>(null);
     const [settings, setSettings] = useState<any>(null);
+    const [mvkVisible, setMvkVisible] = useState(true);
 
     const [mathKeyboardContainer, setMathKeyboardContainer] = useState<HTMLDivElement | null>(null);
-    const [showSuggestions, setShowSuggestions] = useState(false);
     const [notification, setNotification] = useState<{ title: string, message: string, color: string } | null>(null);
 
     const handleFocus = () => {
@@ -42,6 +42,9 @@ export default function EditorPage() {
     useEffect(() => {
         if (isRecording) {
             handleFocus();
+            setMvkVisible(false);
+        } else {
+            setMvkVisible(true);
         }
     }, [isRecording]);
 
@@ -61,7 +64,6 @@ export default function EditorPage() {
         const wsUrl = API_BASE_URL.replace('http', 'ws') + '/ws/record';
         classificationWs.current = new WebSocket(wsUrl);
 
-        // classificationWs.current.onopen = () => console.log('Classification WS Connected');
         classificationWs.current.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
@@ -72,7 +74,6 @@ export default function EditorPage() {
                 console.error('Failed to parse Classification WS message', e);
             }
         };
-        // classificationWs.current.onclose = () => console.log('Classification WS Disconnected');
 
         return () => {
             classificationWs.current?.close();
@@ -113,25 +114,11 @@ export default function EditorPage() {
     };
 
     useEffect(() => {
-        if (classificationState.status !== 'finished' || !classificationState.symbol) {
-            return;
+        if (classificationState.status === 'finished' && classificationState.symbol) {
+            insertSymbol(classificationState.symbol);
         }
 
-        // insert symbol
-        insertSymbol(classificationState.symbol);
-
-        // update suggestions
-        if (classificationState.candidates && classificationState.candidates.length > 0) {
-            setShowSuggestions(true);
-        } else {
-            setShowSuggestions(false);
-        }
-
-        // // Auto-restart recording if in auto mode
-        // if (settings?.auto_mode) {
-        //     toggleRecording();
-        // }
-    }, [classificationState, settings, toggleRecording]);
+    }, [classificationState]);
 
     // Wheel listener for cursor navigation, and focus on math field
     useEffect(() => {
@@ -201,9 +188,7 @@ export default function EditorPage() {
 
         //focus the input when the component mounts
         handleFocus();
-
         window.addEventListener('wheel', handleWheel, { passive: false });
-
         return () => {
             window.removeEventListener('wheel', handleWheel);
         };
@@ -260,7 +245,9 @@ export default function EditorPage() {
             const data = await res.json();
             if (res.ok) {
                 setNotification({ title: 'Success', message: `Learned symbol: ${symbol}`, color: 'green' });
-                setShowSuggestions(false); // Hide after successful learn
+                if (!isRecording) {
+                    toggleRecording();
+                }
             } else {
                 setNotification({ title: 'Error', message: data.detail || 'Failed to learn', color: 'red' });
             }
@@ -271,6 +258,13 @@ export default function EditorPage() {
         // Hide notification after 3s
         setTimeout(() => setNotification(null), 3000);
     };
+
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, []);
 
     return (
         <Container size="md">
@@ -286,49 +280,33 @@ export default function EditorPage() {
             )}
 
             <Box py="sm">
-                <MathInput ref={mfRef} value={latex} onChange={setLatex} container={mathKeyboardContainer as HTMLElement} />
+                <MathInput ref={mfRef} value={latex} onChange={setLatex} container={mathKeyboardContainer as HTMLElement} mvkVisible={mvkVisible} />
             </Box>
 
-            {/* Suggestions */}
-            <SuggestionsBox
+            <RecordingOverlay
+                visible={isRecording}
+                onStop={toggleRecording}
+                onPause={setIsPaused}
                 candidates={classificationState.candidates || []}
-                onSelect={handleSuggestionClick}
-                onConfirmRetrain={handleConfirmRetrain}
-                onClose={() => setShowSuggestions(false)}
-                visible={showSuggestions}
+                onSelectSuggestion={handleSuggestionClick}
+                onConfirmSuggestion={handleConfirmRetrain}
             />
 
-            <Center my="sm">
-                <Button
-                    size="xl"
-                    color={isRecording ? 'red' : 'blue'}
-                    leftSection={<IconMicrophone />}
-                    onClick={toggleRecording}
-                    variant={isRecording ? 'filled' : 'light'}
-                    style={{
-                        transition: 'all 0.2s',
-                        transform: isRecording ? 'scale(1.1)' : 'scale(1)',
-                        boxShadow: isRecording ? '0 0 20px rgba(255, 0, 0, 0.5)' : 'none'
-                    }}
-                >
-                    {isRecording ? 'Recording... (Space)' : 'Start Drawing (Space)'}
-                </Button>
+            <Center my="sm" h={60} style={{ textAlign: 'center' }}>
+                {isRecording ?
+                    <Text c="red" size="sm" fs="italic">Recording... (Space to stop)</Text>
+                    :
+                    <Button
+                        size="xl"
+                        color="blue"
+                        leftSection={<IconMicrophone />}
+                        onClick={toggleRecording}
+                        variant="light"
+                    >
+                        Start Drawing (Space)
+                    </Button>
+                }
             </Center>
-
-            <Box h={40} style={{ textAlign: 'center' }}>
-                {isRecording && (
-                    <Text c="red" size="sm" fs="italic">Hold still to finish...</Text>
-                )}
-                {/* {state.status === 'finished' && (
-                    <Text size="xl" fw={700} c="blue">
-                        Detected: {state.symbol} <Text span size="sm" c="dimmed">({(state.confidence || 0).toFixed(2)})</Text>
-                    </Text>
-                )}
-                {state.status === 'idle' && state.message && (
-                    <Text c="dimmed" size="sm">{state.message}</Text>
-                )} */}
-            </Box>
-
 
             <div id="math-keyboard-container" ref={setMathKeyboardContainer} className={colorScheme === 'dark' ? 'dark-mode' : ''} />
 

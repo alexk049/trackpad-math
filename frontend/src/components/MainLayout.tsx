@@ -74,7 +74,6 @@ export default function MainLayout() {
             <AppShell.Main>
                 <Outlet />
             </AppShell.Main>
-            <div className="recording-overlay" />
         </AppShell>
     );
 }

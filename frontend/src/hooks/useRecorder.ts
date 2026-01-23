@@ -138,9 +138,11 @@ export function useRecorder(manualMode: boolean = false) {
         };
     }, [beginRecording]);
 
+    const [isPaused, setIsPaused] = useState(false);
+
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
-            if (!isRecordingRef.current) {
+            if (!isRecordingRef.current || isPaused) {
                 return;
             }
 
@@ -187,7 +189,7 @@ export function useRecorder(manualMode: boolean = false) {
         };
 
         const handleMouseDown = (e: MouseEvent) => {
-            if (!isRecordingRef.current) {
+            if (!isRecordingRef.current || isPaused) {
                 return;
             }
 
@@ -218,7 +220,7 @@ export function useRecorder(manualMode: boolean = false) {
             window.removeEventListener('mousedown', handleMouseDown);
             if (autoModeTimerRef.current) clearTimeout(autoModeTimerRef.current);
         };
-    }, [settings, handleAutoModeTimeout, isAuto]);
+    }, [settings, handleAutoModeTimeout, isAuto, isPaused]);
 
     const toggleRecording = useCallback(() => {
         if (isStartingRef.current) return;
@@ -230,17 +232,5 @@ export function useRecorder(manualMode: boolean = false) {
         }
     }, [startRecordingSequence, stopRecording]);
 
-    useEffect(() => {
-        if (isRecording) {
-            document.body.classList.add('is-recording');
-        } else {
-            document.body.classList.remove('is-recording');
-        }
-
-        return () => {
-            document.body.classList.remove('is-recording');
-        };
-    }, [isRecording]);
-
-    return { isRecording, recordedPoints, toggleRecording };
+    return { isRecording, recordedPoints, toggleRecording, isPaused, setIsPaused };
 }

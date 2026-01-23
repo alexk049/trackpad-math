@@ -180,21 +180,3 @@ div.ML__edit-toolbar.right {
     background-color: var(--variants-background) !important;
     color: var(--variants-text-color) !important;
 }
-
-.recording-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 9999;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-body.is-recording .recording-overlay {
-    opacity: 1;
-    pointer-events: all;
-}

@@ -6,9 +6,10 @@ interface MathInputProps {
     onChange?: (value: string) => void;
     style?: React.CSSProperties;
     container?: HTMLElement;
+    mvkVisible?: boolean;
 }
 
-export const MathInput = forwardRef<HTMLElement, MathInputProps>(({ value, onChange, style, container }, ref) => {
+export const MathInput = forwardRef<HTMLElement, MathInputProps>(({ value, onChange, style, container, mvkVisible }, ref) => {
     const mfRef = useRef<HTMLElement>(null);
 
     useImperativeHandle(ref, () => mfRef.current!);
@@ -42,6 +43,16 @@ export const MathInput = forwardRef<HTMLElement, MathInputProps>(({ value, onCha
             window.mathVirtualKeyboard.show();
         }
     }, [container]);
+
+    useEffect(() => {
+        const mf = mfRef.current;
+        if (!mf) return;
+        if (mvkVisible) {
+            window.mathVirtualKeyboard.show();
+        } else {
+            window.mathVirtualKeyboard.hide();
+        }
+    }, [mvkVisible]);
 
     return React.createElement('math-field', {
         ref: mfRef,
