@@ -2,8 +2,6 @@ name: "Release"
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -16,10 +14,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "macos-latest" # macos-14 is aarch64
+          - platform: "macos-latest" # macos-14/15 is aarch64
             args: "--target aarch64-apple-darwin"
             suffix: "aarch64-apple-darwin"
-          - platform: "macos-13" # macos-13 is x86_64
+          - platform: "macos-15-intel" # macos-15-intel is x86_64
             args: "--target x86_64-apple-darwin"
             suffix: "x86_64-apple-darwin"
           - platform: "ubuntu-22.04"
