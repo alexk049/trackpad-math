@@ -39,9 +39,11 @@ export default function EditorPage() {
         }
     };
 
-    if (isRecording) {
-        handleFocus();
-    }
+    useEffect(() => {
+        if (isRecording) {
+            handleFocus();
+        }
+    }, [isRecording]);
 
     useEffect(() => {
         fetch(`${API_BASE_URL}/api/settings`)

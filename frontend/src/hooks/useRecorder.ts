@@ -106,7 +106,7 @@ export function useRecorder(manualMode: boolean = false) {
         }
 
         pointsRef.current = [];
-    }, []);
+    }, [isAuto]);
 
     const handleAutoModeTimeout = useCallback(() => {
         if (!isRecordingRef.current) return;
@@ -218,7 +218,7 @@ export function useRecorder(manualMode: boolean = false) {
             window.removeEventListener('mousedown', handleMouseDown);
             if (autoModeTimerRef.current) clearTimeout(autoModeTimerRef.current);
         };
-    }, [settings, handleAutoModeTimeout, stopRecording]);
+    }, [settings, handleAutoModeTimeout, isAuto]);
 
     const toggleRecording = useCallback(() => {
         if (isStartingRef.current) return;
@@ -229,6 +229,18 @@ export function useRecorder(manualMode: boolean = false) {
             startRecordingSequence();
         }
     }, [startRecordingSequence, stopRecording]);
+
+    useEffect(() => {
+        if (isRecording) {
+            document.body.classList.add('is-recording');
+        } else {
+            document.body.classList.remove('is-recording');
+        }
+
+        return () => {
+            document.body.classList.remove('is-recording');
+        };
+    }, [isRecording]);
 
     return { isRecording, recordedPoints, toggleRecording };
 }
