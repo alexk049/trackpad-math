@@ -27,6 +27,8 @@ export function RecordingOverlay({
     useEffect(() => {
         if (candidates.length > 0) {
             setShowSuggestions(true);
+        } else {
+            setShowSuggestions(false);
         }
     }, [candidates]);
 
