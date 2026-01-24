@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Container, Title, Accordion, Checkbox, Button, Group, Text, Stack, Card, Center } from '@mantine/core';
 import { API_BASE_URL } from '../config';
-import { IconPlayerStop, IconRefresh, IconCheck, IconPlayerRecord } from '@tabler/icons-react';
-import { useRecorder, segmentStrokes } from '../hooks/useRecorder';
+import { IconRefresh, IconCheck, IconPlayerRecord } from '@tabler/icons-react';
+import { useRecorder } from '../hooks/useRecorder';
 
 // --- Types ---
 interface SymbolItem {
@@ -16,71 +16,7 @@ interface Category {
     items: SymbolItem[];
 }
 
-// --- Components ---
-
-function CanvasPreview({ points }: { points: any[] }) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-
-    useEffect(() => {
-        if (!canvasRef.current || !points) return;
-        const ctx = canvasRef.current.getContext('2d');
-        if (!ctx) return;
-
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-
-        // Background
-        ctx.fillStyle = "transparent";
-        ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-
-        if (points.length === 0) return;
-
-        ctx.strokeStyle = '#228be6';
-        ctx.lineWidth = 3;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-
-        // Calculate bounds to center/scale
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        points.forEach(pt => {
-            if (pt.x < minX) minX = pt.x;
-            if (pt.x > maxX) maxX = pt.x;
-            if (pt.y < minY) minY = pt.y;
-            if (pt.y > maxY) maxY = pt.y;
-        });
-
-        const strokes = segmentStrokes(points);
-        const width = maxX - minX || 1;
-        const height = maxY - minY || 1;
-        const scale = Math.min(250 / width, 250 / height) * 0.8; // 0.8 padding
-        const offsetX = (300 - width * scale) / 2;
-        const offsetY = (300 - height * scale) / 2;
-
-        strokes.forEach(stroke => {
-            if (stroke.length === 0) return;
-            ctx.beginPath();
-            if (stroke.length === 1) {
-                const x = (stroke[0].x - minX) * scale + offsetX;
-                const y = (stroke[0].y - minY) * scale + offsetY;
-                ctx.arc(x, y, ctx.lineWidth * 1.2, 0, Math.PI * 2);
-                ctx.fillStyle = ctx.strokeStyle;
-                ctx.fill();
-            } else {
-                ctx.moveTo((stroke[0].x - minX) * scale + offsetX, (stroke[0].y - minY) * scale + offsetY);
-                for (let i = 1; i < stroke.length; i++) {
-                    ctx.lineTo((stroke[i].x - minX) * scale + offsetX, (stroke[i].y - minY) * scale + offsetY);
-                }
-                ctx.stroke();
-            }
-        });
-
-    }, [points]);
-
-    return (
-        <Center style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 8, padding: 20 }}>
-            <canvas ref={canvasRef} width={300} height={300} />
-        </Center>
-    );
-}
+import { StrokeCanvas } from '../components/StrokeCanvas';
 
 // --- Main Page ---
 
@@ -97,7 +33,7 @@ export default function TrainingPage() {
     const [recordCount, setRecordCount] = useState(0); // 0, 1, 2 (target 3)
 
     // Recording
-    const { isRecording, recordedPoints, toggleRecording } = useRecorder(true);
+    const { isRecording, recordedPoints, toggleRecording, stopRecording } = useRecorder(true);
     const [lastRecording, setLastRecording] = useState<any[] | null>(null);
 
     // Fetch categories
@@ -114,6 +50,21 @@ export default function TrainingPage() {
             setLastRecording(recordedPoints);
         }
     }, [recordedPoints]);
+
+    // Space bar handler for recording
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.code === 'Space' && step === 2) {
+                e.preventDefault();
+                toggleRecording();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [toggleRecording, step]);
 
     // Step 1: Selection Logic
     const toggleSymbol = (sym: string) => {
@@ -146,9 +97,7 @@ export default function TrainingPage() {
 
     const handleRedraw = () => {
         setLastRecording(null);
-        // We need to re-record. 
-        // If recording was active, it stopped when we got points.
-        // User clicks "Redraw", we clear the preview.
+        toggleRecording();
     };
 
     const handleNextRecording = async () => {
@@ -170,6 +119,7 @@ export default function TrainingPage() {
 
         if (recordCount < 2) {
             setRecordCount(c => c + 1);
+            toggleRecording();
         } else {
             // Finished 3 for this symbol
             if (currentSymbolIndex < trainingQueue.length - 1) {
@@ -188,6 +138,16 @@ export default function TrainingPage() {
             <Container size="sm" py="xl">
                 <Title mb="lg">Select Symbols to Train</Title>
                 <Stack>
+                    <Button
+                        size="lg"
+                        onClick={startTraining}
+                        disabled={selectedSymbols.size === 0}
+                        mt="xl"
+                        fullWidth
+                    >
+                        Start Training ({selectedSymbols.size} symbols)
+                    </Button>
+
                     <Accordion multiple variant="separated">
                         {categories.map((cat) => {
                             const allSelected = cat.items?.every(s => selectedSymbols.has(s.symbol)) ?? false;
@@ -235,16 +195,6 @@ export default function TrainingPage() {
                             );
                         })}
                     </Accordion>
-
-                    <Button
-                        size="lg"
-                        onClick={startTraining}
-                        disabled={selectedSymbols.size === 0}
-                        mt="xl"
-                        fullWidth
-                    >
-                        Start Training ({selectedSymbols.size} symbols)
-                    </Button>
                 </Stack>
             </Container>
         );
@@ -252,15 +202,14 @@ export default function TrainingPage() {
 
     if (step === 2) {
         return (
-            <div style={{ position: 'relative', height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <Title order={2} mb="xl">
-                    Draw "{currentSymbol}" ({recordCount + 1}/3)
-                </Title>
-
-                {/* Main Content Area */}
+            <Center h="80vh">
                 <Stack align="center" gap="xl">
+                    <Title order={2}>
+                        Draw "{currentSymbol}" ({recordCount + 1}/3)
+                    </Title>
+
                     {lastRecording ? (
-                        <CanvasPreview points={lastRecording} />
+                        <StrokeCanvas points={lastRecording} />
                     ) : (
                         <Card withBorder p={50} style={{ borderStyle: 'dashed' }}>
                             <Text c="dimmed">Waiting for recording...</Text>
@@ -270,29 +219,17 @@ export default function TrainingPage() {
                     <Text size="lg" c="dimmed">
                         {isRecording ? "Released to stop..." : "Press Space or 'Record' to start"}
                     </Text>
-                </Stack>
-
-                {/* Overlay Controls */}
-                <div style={{
-                    position: 'fixed',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    padding: 40,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    pointerEvents: 'none' // Allow clicking through if needed, but buttons need pointerEvents: all
-                }}>
-                    <Button
-                        size="xl"
-                        color={isRecording ? "red" : "blue"}
-                        leftSection={isRecording ? <IconPlayerStop /> : <IconPlayerRecord />}
-                        onClick={toggleRecording}
-                        style={{ pointerEvents: 'all', width: 200 }}
-                    >
-                        {isRecording ? "Stop Recording" : "Record"}
-                    </Button>
-
+                    {!lastRecording && !isRecording && (
+                        <Button
+                            size="xl"
+                            color="blue"
+                            leftSection={<IconPlayerRecord />}
+                            onClick={toggleRecording}
+                            style={{ pointerEvents: 'all', width: 200 }}
+                        >
+                            Record
+                        </Button>
+                    )}
                     {lastRecording && (
                         <Group>
                             <Button
@@ -315,8 +252,8 @@ export default function TrainingPage() {
                             </Button>
                         </Group>
                     )}
-                </div>
-            </div>
+                </Stack>
+            </Center>
         );
     }
 

@@ -232,5 +232,5 @@ export function useRecorder(manualMode: boolean = false) {
         }
     }, [startRecordingSequence, stopRecording]);
 
-    return { isRecording, recordedPoints, toggleRecording, isPaused, setIsPaused };
+    return { isRecording, recordedPoints, toggleRecording, stopRecording, isPaused, setIsPaused };
 }
