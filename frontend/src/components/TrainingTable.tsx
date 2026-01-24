@@ -5,6 +5,8 @@ import { useState } from 'react';
 export interface LabelData {
     label: string;
     count: number;
+    description?: string;
+    latex?: string;
 }
 
 interface TrainingTableProps {
@@ -17,7 +19,9 @@ export function TrainingTable({ data, selectedLabel, onSelect }: TrainingTablePr
     const [filter, setFilter] = useState('');
 
     const filteredData = data.filter(item =>
-        item.label.toLowerCase().includes(filter.toLowerCase())
+        item.label.toLowerCase().includes(filter.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(filter.toLowerCase())) ||
+        (item.latex && item.latex.toLowerCase().includes(filter.toLowerCase()))
     );
 
     const rows = filteredData.map((item) => {
@@ -38,6 +42,7 @@ export function TrainingTable({ data, selectedLabel, onSelect }: TrainingTablePr
                 style={{ cursor: 'pointer', userSelect: 'none' }}
             >
                 <Table.Td style={{ fontFamily: 'monospace', fontSize: '1.2em' }}>{item.label}</Table.Td>
+                <Table.Td>{item.description}</Table.Td>
                 <Table.Td>{item.count}</Table.Td>
             </Table.Tr>
         );
@@ -58,6 +63,7 @@ export function TrainingTable({ data, selectedLabel, onSelect }: TrainingTablePr
                     <Table.Thead>
                         <Table.Tr>
                             <Table.Th>Symbol</Table.Th>
+                            <Table.Th>Description</Table.Th>
                             <Table.Th>Count</Table.Th>
                         </Table.Tr>
                     </Table.Thead>

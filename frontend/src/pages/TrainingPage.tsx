@@ -8,6 +8,7 @@ import { useRecorder, segmentStrokes } from '../hooks/useRecorder';
 interface SymbolItem {
     symbol: string;
     description: string;
+    latex: string;
 }
 
 interface Category {
@@ -215,9 +216,11 @@ export default function TrainingPage() {
                                                     key={item.symbol}
                                                     label={
                                                         <div style={{ lineHeight: 1.2 }}>
-                                                            <Text size="sm">{item.description}</Text>
+                                                            <Group gap="xs" align="center">
+                                                                <Text size="sm">{item.symbol}</Text>
+                                                            </Group>
                                                             <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
-                                                                {item.symbol}
+                                                                {item.description}
                                                             </Text>
                                                         </div>
                                                     }

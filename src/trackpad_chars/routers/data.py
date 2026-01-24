@@ -18,37 +18,50 @@ class TeachRequest(BaseModel):
 
 @router.get("/api/labels")
 def get_labels(db: Session = Depends(get_db)):
-    """Get all unique labels and their counts."""
+    """Get all unique labels and their counts, with descriptions."""
     results = db.query(Drawing.label, func.count(Drawing.id)).group_by(Drawing.label).all()
     data = {r[0]: r[1] for r in results}
     
     # Get all trainable symbols from the categorized list
-    # The structure is: [{"name": ..., "items": [{"symbol": "...", "description": "..."}, ...]}, ...]
     categorized = get_categorized_symbols()
-    all_symbols = []
+    
+    # Map symbol -> {description, latex}
+    symbol_info = {}
+    ordered_symbols = []
     for cat in categorized:
         for item in cat["items"]:
-            all_symbols.append(item["symbol"])
+            sym = item["symbol"]
+            if sym not in symbol_info:
+                ordered_symbols.append(sym)
+                symbol_info[sym] = {
+                    "description": item.get("description", ""),
+                    "latex": item.get("latex", "")
+                }
     
-    # Remove duplicates while preserving order
-    seen = set()
-    unique_symbols = []
-    for s in all_symbols:
-        if s not in seen:
-            unique_symbols.append(s)
-            seen.add(s)
-
     final_list = []
-    # Merge existing counts
-    for sym in unique_symbols:
-        final_list.append({"label": sym, "count": data.get(sym, 0)})
+    seen_labels = set()
     
-    # Add any others that exist in DB but aren't in our 'all_symbols' list
+    # First, add all predefined symbols in order
+    for sym in ordered_symbols:
+        info = symbol_info[sym]
+        final_list.append({
+            "label": sym,
+            "count": data.get(sym, 0),
+            "description": info["description"],
+            "latex": info["latex"]
+        })
+        seen_labels.add(sym)
+    
+    # Then add any labels that exist in DB but aren't in categorized list
     for label, count in data.items():
-        if label not in seen:
-             final_list.append({"label": label, "count": count})
+        if label not in seen_labels:
+             final_list.append({
+                 "label": label, 
+                 "count": count,
+                 "description": "",
+                 "latex": ""
+             })
              
-    # final_list.sort(key=lambda x: x['label']) 
     return final_list
 
 @router.get("/api/drawings")
@@ -186,166 +199,191 @@ def get_categorized_symbols():
         {
             "name": "1. Basic Mathematics (Foundational)",
             "items": [
-                {"symbol": "0", "description": "Digit 0"},
-                {"symbol": "1", "description": "Digit 1"},
-                {"symbol": "2", "description": "Digit 2"},
-                {"symbol": "3", "description": "Digit 3"},
-                {"symbol": "4", "description": "Digit 4"},
-                {"symbol": "5", "description": "Digit 5"},
-                {"symbol": "6", "description": "Digit 6"},
-                {"symbol": "7", "description": "Digit 7"},
-                {"symbol": "8", "description": "Digit 8"},
-                {"symbol": "9", "description": "Digit 9"},
-                {"symbol": "+", "description": "Addition"},
-                {"symbol": "-", "description": "Subtraction"},
-                {"symbol": "\\times", "description": "Multiplication"},
-                {"symbol": "\\div", "description": "Division"},
-                {"symbol": "=", "description": "Equality"},
-                {"symbol": "\\neq", "description": "Inequality"},
-                {"symbol": "<", "description": "Less than"},
-                {"symbol": ">", "description": "Greater than"},
-                {"symbol": "\\le", "description": "Less than or equal to"},
-                {"symbol": "\\ge", "description": "Greater than or equal to"},
-                {"symbol": "\\pm", "description": "Plus-minus"},
-                {"symbol": "%", "description": "Percent"},
-                {"symbol": "\\sqrt", "description": "Square root"},
-                {"symbol": "|x|", "description": "Absolute value"},
-                {"symbol": "^", "description": "Exponentiation"},
-                {"symbol": "(", "description": "Left Parenthesis"},
-                {"symbol": ")", "description": "Right Parenthesis"},
-                {"symbol": "[", "description": "Left Bracket"},
-                {"symbol": "]", "description": "Right Bracket"},
-                {"symbol": "{", "description": "Left Brace"},
-                {"symbol": "}", "description": "Right Brace"},
-                {"symbol": "e", "description": "Euler's number"},
-                {"symbol": "\\pi", "description": "Pi"},
-                {"symbol": "i", "description": "Imaginary unit"}
+                {"latex": "0", "description": "", "symbol": "0"},
+                {"latex": "1", "description": "", "symbol": "1"},
+                {"latex": "2", "description": "", "symbol": "2"},
+                {"latex": "3", "description": "", "symbol": "3"},
+                {"latex": "4", "description": "", "symbol": "4"},
+                {"latex": "5", "description": "", "symbol": "5"},
+                {"latex": "6", "description": "", "symbol": "6"},
+                {"latex": "7", "description": "", "symbol": "7"},
+                {"latex": "8", "description": "", "symbol": "8"},
+                {"latex": "9", "description": "", "symbol": "9"},
+                {"latex": "a", "description": "", "symbol": "a"},
+                {"latex": "b", "description": "", "symbol": "b"},
+                {"latex": "c", "description": "", "symbol": "c"},
+                {"latex": "d", "description": "", "symbol": "d"},
+                {"latex": "e", "description": "Euler's number", "symbol": "e"},
+                {"latex": "f", "description": "", "symbol": "f"},
+                {"latex": "g", "description": "", "symbol": "g"},
+                {"latex": "h", "description": "", "symbol": "h"},
+                {"latex": "i", "description": "Imaginary unit", "symbol": "i"},
+                {"latex": "j", "description": "", "symbol": "j"},
+                {"latex": "k", "description": "", "symbol": "k"},
+                {"latex": "l", "description": "", "symbol": "l"},
+                {"latex": "m", "description": "", "symbol": "m"},
+                {"latex": "n", "description": "", "symbol": "n"},
+                {"latex": "o", "description": "", "symbol": "o"},
+                {"latex": "p", "description": "", "symbol": "p"},
+                {"latex": "q", "description": "", "symbol": "q"},
+                {"latex": "r", "description": "", "symbol": "r"},
+                {"latex": "s", "description": "", "symbol": "s"},
+                {"latex": "t", "description": "", "symbol": "t"},
+                {"latex": "u", "description": "", "symbol": "u"},
+                {"latex": "v", "description": "", "symbol": "v"},
+                {"latex": "w", "description": "", "symbol": "w"},
+                {"latex": "x", "description": "", "symbol": "x"},
+                {"latex": "y", "description": "", "symbol": "y"},
+                {"latex": "z", "description": "", "symbol": "z"},
+                {"latex": ".", "description": "Decimal Point", "symbol": "."},
+                {"latex": "+", "description": "Addition", "symbol": "+"},
+                {"latex": "-", "description": "Subtraction", "symbol": "-"},
+                {"latex": "\\times", "description": "Multiplication", "symbol": "×"},
+                {"latex": "\\div", "description": "Division", "symbol": "÷"},
+                {"latex": "=", "description": "Equality", "symbol": "="},
+                {"latex": "\\neq", "description": "Inequality", "symbol": "≠"},
+                {"latex": "<", "description": "Less than", "symbol": "<"},
+                {"latex": ">", "description": "Greater than", "symbol": ">"},
+                {"latex": "\\le", "description": "Less than or equal to", "symbol": "≤"},
+                {"latex": "\\ge", "description": "Greater than or equal to", "symbol": "≥"},
+                {"latex": "\\pm", "description": "Plus-minus", "symbol": "±"},
+                {"latex": "%", "description": "Percent", "symbol": "%"},
+                {"latex": "\\sqrt", "description": "Square root", "symbol": "√"},
+                {"latex": "|x|", "description": "Absolute value", "symbol": "|x|"},
+                {"latex": "^", "description": "Exponentiation", "symbol": "^"},
+                {"latex": "(", "description": "Left Parenthesis", "symbol": "("},
+                {"latex": ")", "description": "Right Parenthesis", "symbol": ")"},
+                {"latex": "[", "description": "Left Bracket", "symbol": "["},
+                {"latex": "]", "description": "Right Bracket", "symbol": "]"},
+                {"latex": "{", "description": "Left Brace", "symbol": "{"},
+                {"latex": "}", "description": "Right Brace", "symbol": "}"},
+                {"latex": "\\pi", "description": "Pi", "symbol": "π"}
             ]
         },
         {
             "name": "2. Logic and Set Theory",
             "items": [
-                {"symbol": "\\forall", "description": "Universal quantifier (\"For all\")"},
-                {"symbol": "\\exists", "description": "Existential quantifier (\"There exists\")"},
-                {"symbol": "\\exists!", "description": "Uniqueness quantifier"},
-                {"symbol": "\\neg", "description": "Negation (\"Not\")"},
-                {"symbol": "\\wedge", "description": "Conjunction (\"And\")"},
-                {"symbol": "\\vee", "description": "Disjunction (\"Or\")"},
-                {"symbol": "\\oplus", "description": "Exclusive OR"},
-                {"symbol": "\\implies", "description": "Material implication (\"If... then\")"},
-                {"symbol": "\\iff", "description": "Biconditional (\"If and only if\")"},
-                {"symbol": "\\therefore", "description": "Therefore"},
-                {"symbol": "\\because", "description": "Because"},
-                {"symbol": "\\in", "description": "Element of"},
-                {"symbol": "\\notin", "description": "Not an element of"},
-                {"symbol": "\\subset", "description": "Proper subset"},
-                {"symbol": "\\subseteq", "description": "Subset"},
-                {"symbol": "\\cup", "description": "Union"},
-                {"symbol": "\\cap", "description": "Intersection"},
-                {"symbol": "A^c", "description": "Complement of set A"},
-                {"symbol": "\\bar{A}", "description": "Complement (alt)"},
-                {"symbol": "\\setminus", "description": "Set difference"},
-                {"symbol": "\\mathcal{P}", "description": "Power set"},
-                {"symbol": "\\aleph_0", "description": "Aleph-null"}
+                {"latex": "\\forall", "description": "Universal quantifier (\"For all\")", "symbol": "∀"},
+                {"latex": "\\exists", "description": "Existential quantifier (\"There exists\")", "symbol": "∃"},
+                {"latex": "\\exists!", "description": "Uniqueness quantifier", "symbol": "∃!"},
+                {"latex": "\\neg", "description": "Negation (\"Not\")", "symbol": "¬"},
+                {"latex": "\\wedge", "description": "Conjunction (\"And\")", "symbol": "∧"},
+                {"latex": "\\vee", "description": "Disjunction (\"Or\")", "symbol": "∨"},
+                {"latex": "\\oplus", "description": "Exclusive OR", "symbol": "⊕"},
+                {"latex": "\\implies", "description": "Material implication (\"If... then\")", "symbol": "⇒"},
+                {"latex": "\\iff", "description": "Biconditional (\"If and only if\")", "symbol": "⇔"},
+                {"latex": "\\therefore", "description": "Therefore", "symbol": "∴"},
+                {"latex": "\\because", "description": "Because", "symbol": "∵"},
+                {"latex": "\\in", "description": "Element of", "symbol": "∈"},
+                {"latex": "\\notin", "description": "Not an element of", "symbol": "∉"},
+                {"latex": "\\subset", "description": "Proper subset", "symbol": "⊂"},
+                {"latex": "\\subseteq", "description": "Subset", "symbol": "⊆"},
+                {"latex": "\\cup", "description": "Union", "symbol": "∪"},
+                {"latex": "\\cap", "description": "Intersection", "symbol": "∩"},
+                {"latex": "A^c", "description": "Complement of set A", "symbol": "Aᶜ"},
+                {"latex": "\\bar{A}", "description": "Complement (alt)", "symbol": "Ā"},
+                {"latex": "\\setminus", "description": "Set difference", "symbol": "∖"},
+                {"latex": "\\mathcal{P}", "description": "Power set", "symbol": "𝒫"},
+                {"latex": "\\aleph_0", "description": "Aleph-null", "symbol": "ℵ₀"}
             ]
         },
         {
             "name": "3. Algebra and Number Theory",
             "items": [
-                {"symbol": "\\mid", "description": "Divisibility"},
-                {"symbol": "\\pmod", "description": "Congruence modulo"},
-                {"symbol": "\\gcd", "description": "Greatest common divisor"},
-                {"symbol": "\\sum", "description": "Summation"},
-                {"symbol": "\\prod", "description": "Product"},
-                {"symbol": "!", "description": "Factorial"},
-                {"symbol": "\\binom", "description": "Binomial coefficient"},
-                {"symbol": "\\lfloor", "description": "Floor"},
-                {"symbol": "\\lceil", "description": "Ceiling"},
-                {"symbol": "\\mathbb{N}", "description": "Natural numbers"},
-                {"symbol": "\\mathbb{Z}", "description": "Integer numbers"},
-                {"symbol": "\\mathbb{Q}", "description": "Rational numbers"},
-                {"symbol": "\\mathbb{R}", "description": "Real numbers"},
-                {"symbol": "\\mathbb{C}", "description": "Complex numbers"},
-                {"symbol": "\\mathbb{H}", "description": "Quaternions"}
+                {"latex": "\\mid", "description": "Divisibility", "symbol": "∣"},
+                {"latex": "\\pmod", "description": "Congruence modulo", "symbol": "mod"},
+                {"latex": "\\gcd", "description": "Greatest common divisor", "symbol": "gcd"},
+                {"latex": "\\sum", "description": "Summation", "symbol": "∑"},
+                {"latex": "\\prod", "description": "Product", "symbol": "∏"},
+                {"latex": "!", "description": "Factorial", "symbol": "!"},
+                {"latex": "\\binom", "description": "Binomial coefficient", "symbol": "()"},
+                {"latex": "\\lfloor", "description": "Floor", "symbol": "⌊"},
+                {"latex": "\\lceil", "description": "Ceiling", "symbol": "⌈"},
+                {"latex": "\\mathbb{N}", "description": "Natural numbers", "symbol": "ℕ"},
+                {"latex": "\\mathbb{Z}", "description": "Integer numbers", "symbol": "ℤ"},
+                {"latex": "\\mathbb{Q}", "description": "Rational numbers", "symbol": "ℚ"},
+                {"latex": "\\mathbb{R}", "description": "Real numbers", "symbol": "ℝ"},
+                {"latex": "\\mathbb{C}", "description": "Complex numbers", "symbol": "ℂ"},
+                {"latex": "\\mathbb{H}", "description": "Quaternions", "symbol": "ℍ"}
             ]
         },
         {
             "name": "4. Calculus and Analysis",
             "items": [
-                {"symbol": "\\lim", "description": "Limit"},
-                {"symbol": "f'", "description": "Derivative"},
-                {"symbol": "\\partial", "description": "Partial derivative"},
-                {"symbol": "\\int", "description": "Indefinite integral"},
-                {"symbol": "\\oint", "description": "Contour integral"},
-                {"symbol": "\\iint", "description": "Double integral"},
-                {"symbol": "\\nabla", "description": "Del/Nabla"},
-                {"symbol": "\\Delta", "description": "Laplacian"},
-                {"symbol": "\\epsilon", "description": "Epsilon (small quantity)"},
-                {"symbol": "\\delta", "description": "Delta (small quantity)"},
-                {"symbol": "\\infty", "description": "Infinity"}
+                {"latex": "\\lim", "description": "Limit", "symbol": "lim"},
+                {"latex": "f'", "description": "Derivative", "symbol": "f'"},
+                {"latex": "\\partial", "description": "Partial derivative", "symbol": "∂"},
+                {"latex": "\\int", "description": "Indefinite integral", "symbol": "∫"},
+                {"latex": "\\oint", "description": "Contour integral", "symbol": "∮"},
+                {"latex": "\\iint", "description": "Double integral", "symbol": "∬"},
+                {"latex": "\\nabla", "description": "Del/Nabla", "symbol": "∇"},
+                {"latex": "\\Delta", "description": "Laplacian", "symbol": "Δ"},
+                {"latex": "\\epsilon", "description": "Epsilon (small quantity)", "symbol": "ε"},
+                {"latex": "\\delta", "description": "Delta (small quantity)", "symbol": "δ"},
+                {"latex": "\\infty", "description": "Infinity", "symbol": "∞"}
             ]
         },
         {
             "name": "5. Linear Algebra and Vector Calculus",
             "items": [
-                {"symbol": "\\vec{v}", "description": "Vector"},
-                {"symbol": "\\|v\\|", "description": "Norm"},
-                {"symbol": "\\cdot", "description": "Dot product"},
-                {"symbol": "\\times", "description": "Cross product"},
-                {"symbol": "\\langle", "description": "Inner product (left)"},
-                {"symbol": "\\rangle", "description": "Inner product (right)"},
-                {"symbol": "^T", "description": "Transpose"},
-                {"symbol": "^H", "description": "Conjugate transpose"},
-                {"symbol": "\\det", "description": "Determinant"},
-                {"symbol": "\\text{tr}", "description": "Trace"},
-                {"symbol": "\\mathbf{I}", "description": "Identity matrix"}
+                {"latex": "\\vec{v}", "description": "Vector", "symbol": "v⃗"},
+                {"latex": "\\|v\\|", "description": "Norm", "symbol": "||v||"},
+                {"latex": "\\cdot", "description": "Dot product", "symbol": "⋅"},
+                {"latex": "\\times", "description": "Cross product", "symbol": "×"},
+                {"latex": "\\langle", "description": "Inner product (left)", "symbol": "⟨"},
+                {"latex": "\\rangle", "description": "Inner product (right)", "symbol": "⟩"},
+                {"latex": "^T", "description": "Transpose", "symbol": "ᵀ"},
+                {"latex": "^H", "description": "Conjugate transpose", "symbol": "ᴴ"},
+                {"latex": "\\det", "description": "Determinant", "symbol": "det"},
+                {"latex": "\\text{tr}", "description": "Trace", "symbol": "tr"},
+                {"latex": "\\mathbf{I}", "description": "Identity matrix", "symbol": "I"}
             ]
         },
         {
             "name": "6. Geometry and Trigonometry",
             "items": [
-                {"symbol": "\\angle", "description": "Angle"},
-                {"symbol": "\\perp", "description": "Perpendicular"},
-                {"symbol": "\\parallel", "description": "Parallel"},
-                {"symbol": "\\cong", "description": "Congruent"},
-                {"symbol": "\\sim", "description": "Similar"},
-                {"symbol": "\\triangle", "description": "Triangle"},
-                {"symbol": "\\theta", "description": "Theta"},
-                {"symbol": "\\phi", "description": "Phi"},
-                {"symbol": "\\alpha", "description": "Alpha"},
-                {"symbol": "\\beta", "description": "Beta"},
-                {"symbol": "\\sin", "description": "Sine"},
-                {"symbol": "\\cos", "description": "Cosine"},
-                {"symbol": "\\tan", "description": "Tangent"},
-                {"symbol": "\\sinh", "description": "Hyperbolic Sine"},
-                {"symbol": "\\cosh", "description": "Hyperbolic Cosine"},
-                {"symbol": "\\tanh", "description": "Hyperbolic Tangent"}
+                {"latex": "\\angle", "description": "Angle", "symbol": "∠"},
+                {"latex": "\\perp", "description": "Perpendicular", "symbol": "⊥"},
+                {"latex": "\\parallel", "description": "Parallel", "symbol": "∥"},
+                {"latex": "\\cong", "description": "Congruent", "symbol": "≅"},
+                {"latex": "\\sim", "description": "Similar", "symbol": "∼"},
+                {"latex": "\\triangle", "description": "Triangle", "symbol": "△"},
+                {"latex": "\\theta", "description": "Theta", "symbol": "θ"},
+                {"latex": "\\phi", "description": "Phi", "symbol": "φ"},
+                {"latex": "\\alpha", "description": "Alpha", "symbol": "α"},
+                {"latex": "\\beta", "description": "Beta", "symbol": "β"},
+                {"latex": "\\sin", "description": "Sine", "symbol": "sin"},
+                {"latex": "\\cos", "description": "Cosine", "symbol": "cos"},
+                {"latex": "\\tan", "description": "Tangent", "symbol": "tan"},
+                {"latex": "\\sinh", "description": "Hyperbolic Sine", "symbol": "sinh"},
+                {"latex": "\\cosh", "description": "Hyperbolic Cosine", "symbol": "cosh"},
+                {"latex": "\\tanh", "description": "Hyperbolic Tangent", "symbol": "tanh"}
             ]
         },
         {
             "name": "7. Abstract Algebra and Category Theory",
             "items": [
-                {"symbol": "\\triangleleft", "description": "Normal subgroup"},
-                {"symbol": "/", "description": "Quotient"},
-                {"symbol": "\\ker", "description": "Kernel"},
-                {"symbol": "\\text{Im}", "description": "Image"},
-                {"symbol": "\\otimes", "description": "Tensor product"},
-                {"symbol": "\\text{Hom}", "description": "Homomorphism set"},
-                {"symbol": "\\circ", "description": "Composition"}
+                {"latex": "\\triangleleft", "description": "Normal subgroup", "symbol": "⊲"},
+                {"latex": "/", "description": "Quotient", "symbol": "/"},
+                {"latex": "\\ker", "description": "Kernel", "symbol": "ker"},
+                {"latex": "\\text{Im}", "description": "Image", "symbol": "Im"},
+                {"latex": "\\otimes", "description": "Tensor product", "symbol": "⊗"},
+                {"latex": "\\text{Hom}", "description": "Homomorphism set", "symbol": "Hom"},
+                {"latex": "\\circ", "description": "Composition", "symbol": "∘"}
             ]
         },
         {
             "name": "8. Probability and Statistics",
             "items": [
-                {"symbol": "P(A)", "description": "Probability"},
-                {"symbol": "P(A \\mid B)", "description": "Conditional Probability"},
-                {"symbol": "E[X]", "description": "Expected Value"},
-                {"symbol": "\\text{Var}", "description": "Variance"},
-                {"symbol": "\\mu", "description": "Population mean"},
-                {"symbol": "\\sigma", "description": "Standard deviation"},
-                {"symbol": "\\bar{x}", "description": "Sample mean"},
-                {"symbol": "s", "description": "Sample standard deviation"},
-                {"symbol": "\\chi^2", "description": "Chi-squared"}
+                {"latex": "P(A)", "description": "Probability", "symbol": "P(A)"},
+                {"latex": "P(A \\mid B)", "description": "Conditional Probability", "symbol": "P(A|B)"},
+                {"latex": "E[X]", "description": "Expected Value", "symbol": "E[X]"},
+                {"latex": "\\text{Var}", "description": "Variance", "symbol": "Var"},
+                {"latex": "\\mu", "description": "Population mean", "symbol": "μ"},
+                {"latex": "\\sigma", "description": "Standard deviation", "symbol": "σ"},
+                {"latex": "\\bar{x}", "description": "Sample mean", "symbol": "x̄"},
+                {"latex": "s", "description": "Sample standard deviation", "symbol": "s"},
+                {"latex": "\\chi^2", "description": "Chi-squared", "symbol": "χ²"}
             ]
         }
     ]
