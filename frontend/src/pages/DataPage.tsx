@@ -1,15 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
-import { Button, Group, Title, FileButton, Container } from '@mantine/core';
-import { IconUpload, IconDownload, IconTrash, IconSchool } from '@tabler/icons-react';
+import { Group, Title, Container } from '@mantine/core';
 import type { LabelData } from '../components/TrainingTable';
 import type { Drawing } from '../components/DataViewer';
 import { TrainingTable } from '../components/TrainingTable';
 import { DataViewer } from '../components/DataViewer';
 import { TeachModal } from '../components/TeachModal';
-import { BatchTrainModal } from '../components/BatchTrainModal';
 
-export default function TrainingPage() {
+export default function DataPage() {
     const [data, setData] = useState<LabelData[]>([]);
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
     const [showDataViewer, setShowDataViewer] = useState(false);
@@ -19,7 +17,6 @@ export default function TrainingPage() {
 
     // Teach State
     const [teachModalOpen, setTeachModalOpen] = useState(false);
-    const [batchModalOpen, setBatchModalOpen] = useState(false);
 
 
     const fetchLabels = async () => {
@@ -56,27 +53,6 @@ export default function TrainingPage() {
         }
     };
 
-    // --- Import / Export ---
-    const handleImport = async (file: File | null) => {
-        if (!file) return;
-        const formData = new FormData();
-        formData.append('file', file);
-        await fetch(`${API_BASE_URL}/api/data/import`, { method: 'POST', body: formData });
-        fetchLabels();
-    };
-
-    const handleExport = () => {
-        window.location.href = `${API_BASE_URL}/api/data/export`;
-    };
-
-    const handleResetData = async () => {
-        if (!confirm('Are you sure you want to delete ALL training data? This cannot be undone.')) return;
-        await fetch(`${API_BASE_URL}/api/data/reset`, { method: 'DELETE' });
-        fetchLabels();
-        setSelectedLabel(null);
-        setShowDataViewer(false);
-    };
-
     const savePoints = useCallback(async (label: string, points: any) => {
         try {
             await fetch(`${API_BASE_URL}/api/teach`, {
@@ -96,15 +72,7 @@ export default function TrainingPage() {
     return (
         <Container size="xl" h="calc(100vh - 100px)" style={{ display: 'flex', flexDirection: 'column' }} py="md">
             <Group justify="space-between" mb="lg" align="center" onClick={(e) => e.stopPropagation()}>
-                <Title order={2}>Training Data</Title>
-                <Group>
-                    <Button onClick={() => setBatchModalOpen(true)} leftSection={<IconSchool size={16} />} color="blue">Batch Train</Button>
-                    <FileButton onChange={handleImport} accept="application/json">
-                        {(props) => <Button {...props} leftSection={<IconUpload size={16} />} variant="default">Import</Button>}
-                    </FileButton>
-                    <Button onClick={handleExport} leftSection={<IconDownload size={16} />} variant="default">Export</Button>
-                    <Button onClick={handleResetData} leftSection={<IconTrash size={16} />} color="red" variant="subtle">Delete All Data</Button>
-                </Group>
+                <Title order={2}>Data</Title>
             </Group>
 
             <Group align="stretch" wrap="nowrap" style={{ flex: 1, minHeight: 0 }}>
@@ -135,13 +103,6 @@ export default function TrainingPage() {
                 opened={teachModalOpen}
                 onClose={() => setTeachModalOpen(false)}
                 label={selectedLabel}
-                onSave={savePoints}
-            />
-
-            <BatchTrainModal
-                opened={batchModalOpen}
-                onClose={() => setBatchModalOpen(false)}
-                labels={data.map(d => d.label)}
                 onSave={savePoints}
             />
         </Container>

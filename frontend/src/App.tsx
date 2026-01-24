@@ -3,7 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './components/MainLayout';
 import EditorPage from './pages/EditorPage';
 import OptionsPage from './pages/Options';
-import TrainingPage from './pages/Training';
+import DataPage from './pages/DataPage';
+import TrainingPage from './pages/TrainingPage';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Route element={<MainLayout />}>
         <Route path="/editor" element={<EditorPage />} />
         <Route path="/options" element={<OptionsPage />} />
+        <Route path="/data" element={<DataPage />} />
         <Route path="/training" element={<TrainingPage />} />
       </Route>
     </Routes>

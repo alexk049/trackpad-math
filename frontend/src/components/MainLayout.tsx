@@ -1,6 +1,6 @@
 import { AppShell, Group, Title, NavLink, Burger, useMantineTheme } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
-import { IconSettings, IconSchool, IconPencil } from '@tabler/icons-react';
+import { IconSettings, IconSchool, IconPencil, IconDatabase } from '@tabler/icons-react';
 import { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
@@ -62,6 +62,12 @@ export default function MainLayout() {
                     leftSection={<IconSettings size="1rem" stroke={1.5} />}
                     active={isActive('options')}
                     onClick={() => navigate('/options')}
+                />
+                <NavLink
+                    label="Data"
+                    leftSection={<IconDatabase size="1rem" stroke={1.5} />}
+                    active={isActive('data')}
+                    onClick={() => navigate('/data')}
                 />
                 <NavLink
                     label="Training"

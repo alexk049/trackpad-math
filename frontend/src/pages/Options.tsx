@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useMantineColorScheme, Container } from '@mantine/core';
+import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useMantineColorScheme, Container, Button, FileButton } from '@mantine/core';
+import { IconUpload, IconDownload, IconTrash } from '@tabler/icons-react';
 import { API_BASE_URL } from '../config';
 
 export default function OptionsPage() {
@@ -91,6 +92,26 @@ export default function OptionsPage() {
                         onChange={(val) => setSettings({ ...settings, equation_scroll_y_sensitivity: val })}
                         onChangeEnd={(val) => update({ equation_scroll_y_sensitivity: val })}
                     />
+                </Card>
+
+                <Card withBorder>
+                    <Text fw={500} mb="xs">Data Management</Text>
+                    <Text size="sm" c="dimmed" mb="md">Manage your training data.</Text>
+                    <Group>
+                        <FileButton onChange={async (file) => {
+                            if (!file) return;
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            await fetch(`${API_BASE_URL}/api/data/import`, { method: 'POST', body: formData });
+                        }} accept="application/json">
+                            {(props) => <Button {...props} leftSection={<IconUpload size={16} />} variant="default">Import Data</Button>}
+                        </FileButton>
+                        <Button onClick={() => window.location.href = `${API_BASE_URL}/api/data/export`} leftSection={<IconDownload size={16} />} variant="default">Export Data</Button>
+                        <Button onClick={async () => {
+                            if (!confirm('Are you sure you want to delete ALL training data? This cannot be undone.')) return;
+                            await fetch(`${API_BASE_URL}/api/data/reset`, { method: 'DELETE' });
+                        }} leftSection={<IconTrash size={16} />} color="red" variant="filled">Delete All Data</Button>
+                    </Group>
                 </Card>
             </Stack>
         </Container>
