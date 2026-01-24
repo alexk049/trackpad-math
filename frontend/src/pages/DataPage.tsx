@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 import { Group, Title, Container } from '@mantine/core';
 import type { LabelData } from '../components/TrainingTable';
@@ -11,6 +12,7 @@ export default function DataPage() {
     const [data, setData] = useState<LabelData[]>([]);
     const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
     const [showDataViewer, setShowDataViewer] = useState(false);
+    const navigate = useNavigate();
 
     // Data Viewer State
     const [drawings, setDrawings] = useState<Drawing[]>([]);
@@ -93,7 +95,7 @@ export default function DataPage() {
                             drawings={drawings}
                             onClose={() => setShowDataViewer(false)}
                             onDeleteDrawings={handleDeleteDrawings}
-                            onTeach={() => setTeachModalOpen(true)}
+                            onTeach={() => navigate(`/training?symbol=${encodeURIComponent(selectedLabel)}`)}
                         />
                     </div>
                 )}

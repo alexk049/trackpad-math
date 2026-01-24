@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Container, Title, Accordion, Checkbox, Button, Group, Text, Stack, Card, Center } from '@mantine/core';
 import { API_BASE_URL } from '../config';
 import { IconRefresh, IconCheck, IconPlayerRecord } from '@tabler/icons-react';
@@ -21,6 +22,7 @@ import { StrokeCanvas } from '../components/StrokeCanvas';
 // --- Main Page ---
 
 export default function TrainingPage() {
+    const [searchParams] = useSearchParams();
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [categories, setCategories] = useState<Category[]>([]);
 
@@ -43,6 +45,15 @@ export default function TrainingPage() {
             .then(setCategories)
             .catch(err => console.error("Failed to fetch symbols", err));
     }, []);
+
+    // Handle initial symbol from URL
+    useEffect(() => {
+        const symbol = searchParams.get('symbol');
+        if (symbol) {
+            setTrainingQueue([symbol]);
+            setStep(2);
+        }
+    }, [searchParams]);
 
     // Watch for recording finish
     useEffect(() => {
