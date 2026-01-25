@@ -55,7 +55,37 @@ sudo apt-get install libwebkit2gtk-4.1-dev build-essential curl wget file libssl
    uv run python src/run_backend.py
    ```
 
-2. **Setup Frontend**:
+2. **Initialize Sidecar Dummy**:
+   Tauri requires the sidecar binary to exist at compile-time, even in dev mode. Create a dummy file for your platform:
+
+   **Linux (x64)**:
+   ```bash
+   mkdir -p frontend/src-tauri/binaries
+   touch frontend/src-tauri/binaries/trackpad-math-backend-x86_64-unknown-linux-gnu
+   chmod +x frontend/src-tauri/binaries/trackpad-math-backend-x86_64-unknown-linux-gnu
+   ```
+
+   **Windows (x64)**:
+   ```powershell
+   mkdir -p frontend/src-tauri/binaries
+   echo $null >> frontend/src-tauri/binaries/trackpad-math-backend-x86_64-pc-windows-msvc.exe
+   ```
+
+   **macOS (Silicon/aarch64)**:
+   ```bash
+   mkdir -p frontend/src-tauri/binaries
+   touch frontend/src-tauri/binaries/trackpad-math-backend-aarch64-apple-darwin
+   chmod +x frontend/src-tauri/binaries/trackpad-math-backend-aarch64-apple-darwin
+   ```
+
+   **macOS (Intel/x86_64)**:
+   ```bash
+   mkdir -p frontend/src-tauri/binaries
+   touch frontend/src-tauri/binaries/trackpad-math-backend-x86_64-apple-darwin
+   chmod +x frontend/src-tauri/binaries/trackpad-math-backend-x86_64-apple-darwin
+   ```
+
+3. **Setup Frontend**:
    In a new terminal:
    ```bash
    cd frontend
