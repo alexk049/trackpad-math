@@ -1,4 +1,6 @@
 import os
+import json
+
 import uuid
 import datetime
 from typing import List, Dict, Any, Optional
@@ -36,6 +38,35 @@ class DBSetting(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    seed_db()
+
+def seed_db():
+    db = SessionLocal()
+    try:
+        # Check if settings exist (and create default if not)
+        if not db.query(DBSetting).first():
+            db.add(DBSetting(id=1))
+            db.commit()
+
+        # Check if drawings exist
+        if db.query(Drawing).first():
+            return
+
+        seed_file = os.path.join(os.path.dirname(__file__), "data", "seed_drawings.json")
+        if not os.path.exists(seed_file):
+            print(f"Seed file not found: {seed_file}")
+            return
+
+        with open(seed_file, "r") as f:
+            drawings_data = json.load(f)
+
+        for d in drawings_data:
+            db.add(Drawing(label=d["label"], points=d["points"]))
+        
+        db.commit()
+        print(f"Seeded {len(drawings_data)} drawings.")
+    finally:
+        db.close()
 
 def get_db():
     db = SessionLocal()

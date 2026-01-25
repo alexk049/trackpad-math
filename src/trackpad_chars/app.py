@@ -23,6 +23,10 @@ app.add_middleware(
 # Initialize DB
 init_db()
 
+# Train model if not already trained (e.g., after seeding)
+if not state.classifier.is_trained:
+    state.train_model()
+
 # Include Routers
 app.include_router(settings.router)
 app.include_router(data.router)
