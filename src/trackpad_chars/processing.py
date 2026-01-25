@@ -136,13 +136,8 @@ def extract_features(strokes: List[List[Dict[str, float]]]) -> np.ndarray:
     # Resample
     resampled = resample_drawing(norm_strokes, points_per_stroke=20)
     
-    # Flatten to fixed size?
-    # Simple aggregations for baseline:
-    # Start point, end point of each stroke?
-    # Let's just flatten the first N strokes coordinates.
-    
     # For now, let's just return a flattened array of first 5 strokes * 20 points * 2 coords = 200 features
-    MAX_STROKES = 5
+    MAX_STROKES = 8
     POINTS = 20
     
     features = []
