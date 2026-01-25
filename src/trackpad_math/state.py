@@ -1,8 +1,8 @@
 from pydantic import BaseModel, ConfigDict
-from trackpad_chars.model import SymbolClassifier
+from trackpad_math.model import SymbolClassifier
 import anyio
 from typing import Optional, List
-from trackpad_chars.db import SessionLocal, Drawing
+from trackpad_math.db import SessionLocal, Drawing
 
 # --- Models ---
 class Settings(BaseModel):

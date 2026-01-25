@@ -2,11 +2,11 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from trackpad_chars.db import init_db
-from trackpad_chars.routers import websocket, data, settings
-from trackpad_chars import state
+from trackpad_math.db import init_db
+from trackpad_math.routers import websocket, data, settings
+from trackpad_math import state
 
-app = FastAPI(title="Trackpad Chars")
+app = FastAPI(title="Trackpad Math")
 
 app.add_middleware(
     CORSMiddleware,

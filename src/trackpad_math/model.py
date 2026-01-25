@@ -7,7 +7,7 @@ import os
 from scipy.spatial.distance import euclidean
 from fastdtw import fastdtw
 
-from trackpad_chars.processing import extract_features, normalize, resample_drawing, segment_strokes
+from trackpad_math.processing import extract_features, normalize, resample_drawing, segment_strokes
 
 Strokes = List[List[Dict[str, float]]]
 Points = List[Dict[str, float]]

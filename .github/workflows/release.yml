@@ -62,9 +62,9 @@ jobs:
           uv run pyinstaller build_backend.spec --noconfirm
           mkdir -p frontend/src-tauri/binaries
           if [ "${{ runner.os }}" = "Windows" ]; then
-            cp dist/trackpad-chars-backend.exe frontend/src-tauri/binaries/trackpad-chars-backend-${{ matrix.suffix }}.exe
+            cp dist/trackpad-math-backend.exe frontend/src-tauri/binaries/trackpad-math-backend-${{ matrix.suffix }}.exe
           else
-            cp dist/trackpad-chars-backend frontend/src-tauri/binaries/trackpad-chars-backend-${{ matrix.suffix }}
+            cp dist/trackpad-math-backend frontend/src-tauri/binaries/trackpad-math-backend-${{ matrix.suffix }}
           fi
         shell: bash
 

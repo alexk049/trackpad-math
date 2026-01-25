@@ -3,8 +3,8 @@ from typing import Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.concurrency import run_in_threadpool
-from trackpad_chars.state import classifier
-from trackpad_chars.socket_manager import manager
+from trackpad_math.state import classifier
+from trackpad_math.socket_manager import manager
 from pynput import mouse
 
 router = APIRouter()

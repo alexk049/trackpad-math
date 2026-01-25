@@ -8,7 +8,7 @@
             "name": "Backend",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/trackpad_chars/app.py",
+            "program": "${workspaceFolder}/src/trackpad_math/app.py",
             "console": "integratedTerminal"
         }
     ]

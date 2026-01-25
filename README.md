@@ -1,9 +1,9 @@
-# 🖊️ Trackpad Characters
+# 🖊️ Trackpad Math
 
 > **Turn your trackpad into a mathematical input device using Machine Learning.**
 
 <p align="center">
-  <img src="app-logo.jpg" alt="Trackpad Chars Logo" width="180" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);"/>
+  <img src="app-logo.jpg" alt="Trackpad Math Logo" width="180" style="border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);"/>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License"/>
 </p>
 
-Trackpad Characters is a desktop application that allows you to draw mathematical symbols directly on your laptop trackpad. The application recognizes your handwriting in real-time using a **K-Nearest Neighbors (KNN)** classifier and provides the corresponding LaTeX code.
+Trackpad Math is a desktop application that allows you to draw mathematical symbols directly on your laptop trackpad. The application recognizes your handwriting in real-time using a **K-Nearest Neighbors (KNN)** classifier and provides the corresponding LaTeX code.
 
 ---
 
@@ -81,10 +81,10 @@ Tauri expects the backend to be in a specific folder with a platform-specific su
 
 | Platform | Target File Name |
 | :--- | :--- |
-| **Linux (x64)** | `trackpad-chars-backend-x86_64-unknown-linux-gnu` |
-| **Windows (x64)** | `trackpad-chars-backend-x86_64-pc-windows-msvc.exe` |
-| **macOS (Silicon)** | `trackpad-chars-backend-aarch64-apple-darwin` |
-| **macOS (Intel)** | `trackpad-chars-backend-x86_64-apple-darwin` |
+| **Linux (x64)** | `trackpad-math-backend-x86_64-unknown-linux-gnu` |
+| **Windows (x64)** | `trackpad-math-backend-x86_64-pc-windows-msvc.exe` |
+| **macOS (Silicon)** | `trackpad-math-backend-aarch64-apple-darwin` |
+| **macOS (Intel)** | `trackpad-math-backend-x86_64-apple-darwin` |
 
 ### 3. Build the Installer
 Finally, bundle everything into a native installer:
@@ -115,10 +115,11 @@ The application follows a **Sidecar Architecture** for maximum performance and f
 │   ├── src/                 # UI components and pages
 │   └── src-tauri/           # Rust-based desktop bridge & config
 ├── src/                     # Python Backend source
-│   ├── trackpad_chars/      # Core logic (Routers, ML, DB models)
+│   ├── trackpad_math/       # Core logic (Routers, ML, DB models)
 │   └── run_backend.py       # Backend initialization script
 ├── build_backend.spec       # PyInstaller bundling configuration
 ├── pyproject.toml           # Python project & dependency definition
+├── uv.lock                  # Lockfile for Python dependencies
 └── app.db                   # Local SQLite database
 ```
 

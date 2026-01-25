@@ -7,7 +7,7 @@ like freeze_support().
 """
 import multiprocessing
 import uvicorn
-from trackpad_chars.app import app
+from trackpad_math.app import app
 
 def main():
     # PyInstaller freeze support for multiprocessing

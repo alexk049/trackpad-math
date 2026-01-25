@@ -47,7 +47,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='trackpad-chars-backend',
+    name='trackpad-math-backend',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from trackpad_chars.state import Settings, classifier
-from trackpad_chars.db import get_db, DBSetting
+from trackpad_math.state import Settings, classifier
+from trackpad_math.db import get_db, DBSetting
 
 router = APIRouter()
 

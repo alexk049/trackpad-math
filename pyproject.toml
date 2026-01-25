@@ -1,5 +1,5 @@
 [project]
-name = "trackpad-chars"
+name = "trackpad-math"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -19,10 +19,11 @@ dependencies = [
     "uvicorn[standard]>=0.38.0",
     "httpx>=0.28.1",
     "pyinstaller>=6.17.0",
+    "python-multipart>=0.0.20",
 ]
 
 [project.scripts]
-trackpad-chars = "trackpad_chars.cli:app"
+trackpad-math = "trackpad_math.cli:app"
 
 [tool.uv]
 package = true

@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
 
-from trackpad_chars.db import get_db, Drawing
-from trackpad_chars.state import classifier
+from trackpad_math.db import get_db, Drawing
+from trackpad_math.state import classifier
 
 router = APIRouter()
 
