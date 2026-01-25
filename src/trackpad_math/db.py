@@ -1,3 +1,4 @@
+import sys
 import os
 import json
 
@@ -52,7 +53,14 @@ def seed_db():
         if db.query(Drawing).first():
             return
 
-        seed_file = os.path.join(os.path.dirname(__file__), "data", "seed_drawings.json")
+        if getattr(sys, 'frozen', False):
+            # Running in a PyInstaller bundle
+            base_path = sys._MEIPASS
+            seed_file = os.path.join(base_path, "trackpad_math", "data", "seed_drawings.json")
+        else:
+            # Running in normal python environment
+            seed_file = os.path.join(os.path.dirname(__file__), "data", "seed_drawings.json")
+            
         if not os.path.exists(seed_file):
             print(f"Seed file not found: {seed_file}")
             return

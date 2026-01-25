@@ -27,7 +27,7 @@ a = Analysis(
     ['src/run_backend.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('src/trackpad_math/data/seed_drawings.json', 'trackpad_math/data')],
     hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},
