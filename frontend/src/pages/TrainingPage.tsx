@@ -35,7 +35,7 @@ export default function TrainingPage() {
     const [recordCount, setRecordCount] = useState(0); // 0, 1, 2 (target 3)
 
     // Recording
-    const { isRecording, recordedPoints, toggleRecording, stopRecording } = useRecorder(true);
+    const { isRecording, recordedPoints, toggleRecording } = useRecorder(true);
     const [lastRecording, setLastRecording] = useState<any[] | null>(null);
 
     // Fetch categories
@@ -61,22 +61,6 @@ export default function TrainingPage() {
             setLastRecording(recordedPoints);
         }
     }, [recordedPoints]);
-
-    // Space bar handler for recording
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.code === 'Space' && step === 2) {
-                e.preventDefault();
-                toggleRecording();
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [toggleRecording, step]);
-
     // Step 1: Selection Logic
     const toggleSymbol = (sym: string) => {
         const next = new Set(selectedSymbols);
@@ -103,8 +87,14 @@ export default function TrainingPage() {
         setLastRecording(null);
     };
 
+    const handleTrainMore = () => {
+        setSelectedSymbols(new Set());
+        setStep(1);
+    };
+
     // Step 2: Training Logic
     const currentSymbol = trainingQueue[currentSymbolIndex];
+    const isLastSample = recordCount === 2 && currentSymbolIndex === trainingQueue.length - 1;
 
     const handleRedraw = () => {
         setLastRecording(null);
@@ -136,11 +126,31 @@ export default function TrainingPage() {
             if (currentSymbolIndex < trainingQueue.length - 1) {
                 setCurrentSymbolIndex(i => i + 1);
                 setRecordCount(0);
+                toggleRecording();
             } else {
                 setStep(3);
             }
         }
     };
+
+    // Space bar handler for recording
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.code === 'Space' && step === 2) {
+                e.preventDefault();
+                if (!isRecording && lastRecording) {
+                    handleNextRecording();
+                } else {
+                    toggleRecording();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [toggleRecording, handleNextRecording, step, isRecording, lastRecording]);
 
     // --- Render ---
 
@@ -227,8 +237,8 @@ export default function TrainingPage() {
                         </Card>
                     )}
 
-                    <Text size="lg" c="dimmed">
-                        {isRecording ? "Released to stop..." : "Press Space or 'Record' to start"}
+                    <Text size="lg" c="dimmed" style={{ visibility: (isLastSample && lastRecording !== null && !isRecording) ? 'hidden' : 'visible' }}>
+                        {isRecording ? "Press Space to stop" : `Press Space or ${lastRecording !== null ? "'Next' to continue training" : "'Start' to start training"}`}
                     </Text>
                     {!lastRecording && !isRecording && (
                         <Button
@@ -238,7 +248,7 @@ export default function TrainingPage() {
                             onClick={toggleRecording}
                             style={{ pointerEvents: 'all', width: 200 }}
                         >
-                            Record
+                            Start
                         </Button>
                     )}
                     {lastRecording && (
@@ -259,7 +269,7 @@ export default function TrainingPage() {
                                 onClick={handleNextRecording}
                                 style={{ pointerEvents: 'all' }}
                             >
-                                Next
+                                {isLastSample ? "Finish" : "Next"}
                             </Button>
                         </Group>
                     )}
@@ -273,8 +283,8 @@ export default function TrainingPage() {
             <Container size="sm" py="xl" style={{ textAlign: 'center', marginTop: 100 }}>
                 <IconCheck size={100} color="green" style={{ marginBottom: 20 }} />
                 <Title order={1} mb="md">Training Complete!</Title>
-                <Text size="lg" mb="xl">You have successfully trained {trainingQueue.length} symbols.</Text>
-                <Button size="lg" onClick={() => setStep(1)}>Train More</Button>
+                <Text size="lg" mb="xl">You have successfully trained {trainingQueue.length} symbol{trainingQueue.length === 1 ? '' : 's'}.</Text>
+                <Button size="lg" onClick={handleTrainMore}>Train More</Button>
             </Container>
         );
     }
