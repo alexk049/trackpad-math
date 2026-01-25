@@ -19,7 +19,7 @@ export default function EditorPage() {
     const { colorScheme } = useMantineColorScheme();
     const mfRef = useRef<any>(null);
     const [latex, setLatex] = useState(() => localStorage.getItem('equation_latex') || '');
-    const { isRecording, recordedPoints, toggleRecording, setIsPaused } = useRecorder();
+    const { isRecording, recordedPoints, toggleRecording, resetRecording, setIsPaused } = useRecorder();
     const [classificationState, setClassificationState] = useState<ClassificationState>({ status: 'idle' });
     const classificationWs = useRef<WebSocket | null>(null);
     const mostRecentPoints = useRef<Point[] | null>(null);
@@ -245,9 +245,8 @@ export default function EditorPage() {
             const data = await res.json();
             if (res.ok) {
                 setNotification({ title: 'Success', message: `Learned symbol: ${symbol}`, color: 'green' });
-                if (!isRecording) {
-                    toggleRecording();
-                }
+                setClassificationState({ status: 'idle' });
+                resetRecording();
             } else {
                 setNotification({ title: 'Error', message: data.detail || 'Failed to learn', color: 'red' });
             }

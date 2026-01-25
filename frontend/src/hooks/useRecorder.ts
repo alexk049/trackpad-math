@@ -232,5 +232,26 @@ export function useRecorder(manualMode: boolean = false) {
         }
     }, [startRecordingSequence, stopRecording]);
 
-    return { isRecording, recordedPoints, toggleRecording, stopRecording, isPaused, setIsPaused };
+    const resetRecording = useCallback(() => {
+        if (isStartingRef.current) return;
+
+        if (autoModeTimerRef.current) {
+            clearTimeout(autoModeTimerRef.current);
+        }
+
+        setRecordedPoints(null);
+        pointsRef.current = [];
+        isStartingRef.current = true;
+        startRecordingSequence();
+    }, [startRecordingSequence]);
+
+    return {
+        isRecording,
+        recordedPoints,
+        toggleRecording,
+        stopRecording,
+        resetRecording,
+        isPaused,
+        setIsPaused
+    };
 }
