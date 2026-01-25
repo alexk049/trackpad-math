@@ -89,7 +89,7 @@ export function DataViewer({ label, drawings, onClose, onDeleteDrawings, onTeach
                         size="xs"
                         variant="light"
                     >
-                        Teach More
+                        Train this symbol
                     </Button>
 
                     {selectedIds.size > 0 && (
