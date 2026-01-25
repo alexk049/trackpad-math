@@ -7,6 +7,16 @@
   ],
   "permissions": [
     "core:default",
-    "shell:default"
+    "shell:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "trackpad-math-backend",
+          "sidecar": true,
+          "args": true
+        }
+      ]
+    }
   ]
 }
