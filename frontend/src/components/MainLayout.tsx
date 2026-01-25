@@ -64,16 +64,16 @@ export default function MainLayout() {
                     onClick={() => navigate('/options')}
                 />
                 <NavLink
-                    label="Data"
-                    leftSection={<IconDatabase size="1rem" stroke={1.5} />}
-                    active={isActive('data')}
-                    onClick={() => navigate('/data')}
-                />
-                <NavLink
                     label="Training"
                     leftSection={<IconSchool size="1rem" stroke={1.5} />}
                     active={isActive('training')}
                     onClick={() => navigate('/training')}
+                />
+                <NavLink
+                    label="Data"
+                    leftSection={<IconDatabase size="1rem" stroke={1.5} />}
+                    active={isActive('data')}
+                    onClick={() => navigate('/data')}
                 />
             </AppShell.Aside>
 
