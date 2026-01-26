@@ -34,12 +34,12 @@ def main():
         os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
         print(f"Database path set to: {os.environ['DATABASE_URL']}")
 
-    # Import app AFTER setting environment variable
-    # This is critical because trackpad_math.db (imported by app) reads os.getenv("DATABASE_URL") at module level
-    from trackpad_math.app import app
+    # Import run_server AFTER setting environment variable
+    # This ensures trackpad_math.db correctly identifies the database path
+    from trackpad_math.app import run_server
     
     print("Starting backend server on port 8000...")
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+    run_server(host="127.0.0.1", port=8000)
 
 if __name__ == "__main__":
     main()
