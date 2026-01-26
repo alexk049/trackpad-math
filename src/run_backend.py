@@ -25,7 +25,7 @@ def listen_stdin(on_stop):
     finally:
         on_stop()
 
-async def run_server(app, host="127.0.0.1", port=8000):
+async def run_server(app, host="127.0.0.1", port=0):
     stop_event = asyncio.Event()
     loop = asyncio.get_running_loop()
     
@@ -43,7 +43,22 @@ async def run_server(app, host="127.0.0.1", port=8000):
     )
     server = uvicorn.Server(config)
     
+    # We need to start the server to get the port if we used port=0
     server_task = asyncio.create_task(server.serve())
+    
+    # Wait a bit for the server to actually start and bind to a port
+    actual_port = port
+    while not server.started and not server_task.done():
+        await asyncio.sleep(0.1)
+    
+    if server.started:
+        for s in server.servers:
+            for sock in s.sockets:
+                actual_port = sock.getsockname()[1]
+                break
+            break
+        print(f"ACTUAL_PORT: {actual_port}", flush=True)
+
     stop_task = asyncio.create_task(stop_event.wait())
     
     done, _ = await asyncio.wait(
@@ -90,9 +105,8 @@ def main():
     # Import app AFTER setting environment variable
     from trackpad_math.app import app
     
-    print("Starting backend server on port 8000...")
     try:
-        asyncio.run(run_server(app, host="127.0.0.1", port=8000))
+        asyncio.run(run_server(app, host="127.0.0.1", port=0))
     except Exception as e:
         print(f"Backend: Main error: {e}", flush=True)
         sys.exit(1)

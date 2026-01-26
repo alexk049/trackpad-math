@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { invoke } from '@tauri-apps/api/core';
 
 import MainLayout from './components/MainLayout';
 import EditorPage from './pages/EditorPage';
@@ -7,7 +8,7 @@ import OptionsPage from './pages/Options';
 import DataPage from './pages/DataPage';
 import TrainingPage from './pages/TrainingPage';
 import LoadingPage from './pages/LoadingPage';
-import { API_BASE_URL } from './config';
+import { getApiBaseUrl, setApiPort } from './config';
 
 function App() {
   const [isReady, setIsReady] = useState(false);
@@ -19,6 +20,22 @@ function App() {
     setIsReady(false);
 
     try {
+      // 0. In production, get the dynamic port from Tauri
+      if (!import.meta.env.DEV) {
+        setStatusMessage('Getting backend port...');
+        try {
+          // This call blocks until the backend reports its actual port
+          const port = await invoke<number>('get_backend_port');
+          setApiPort(port);
+          console.log(`Using dynamic backend port: ${port}`);
+        } catch (e) {
+          console.error('Failed to get backend port from Tauri:', e);
+          // Fall back to default port 8000
+        }
+      }
+
+      const API_BASE_URL = getApiBaseUrl();
+
       // 1. Wait for backend to be reachable
       setStatusMessage('Connecting to backend...');
       let connected = false;
@@ -63,7 +80,18 @@ function App() {
   };
 
   useEffect(() => {
-    initApp();
+    let mounted = true;
+
+    // Delay slightly to ensure loading page renders before blocking call
+    setTimeout(() => {
+      if (mounted) {
+        initApp();
+      }
+    }, 0);
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   if (!isReady) {
