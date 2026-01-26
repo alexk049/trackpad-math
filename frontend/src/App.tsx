@@ -22,18 +22,18 @@ function App() {
     try {
       // 0. In production, get the dynamic port from Tauri
       console.log("import.meta.env.DEV", import.meta.env.DEV);
-      // if (!import.meta.env.DEV) {
-      setStatusMessage('Getting backend port...');
-      try {
-        // This call blocks until the backend reports its actual port
-        const port = await invoke<number>('get_backend_port');
-        setApiPort(port);
-        console.log(`Using dynamic backend port: ${port}`);
-      } catch (e) {
-        console.error('Failed to get backend port from Tauri:', e);
-        // Fall back to default port 8000
+      if (!import.meta.env.DEV) {
+        setStatusMessage('Getting backend port...');
+        try {
+          // This call blocks until the backend reports its actual port
+          const port = await invoke<number>('get_backend_port');
+          setApiPort(port);
+          console.log(`Using dynamic backend port: ${port}`);
+        } catch (e) {
+          console.error('Failed to get backend port from Tauri:', e);
+          // Fall back to default port 8000
+        }
       }
-      // }
 
       const API_BASE_URL = getApiBaseUrl();
 

@@ -135,31 +135,40 @@ pub fn run() {
         // Spawn an async task to monitor the backend's output
         // This runs in the background for the lifetime of the app
         tauri::async_runtime::spawn(async move {
+                  let mut buf = Vec::new(); // Initialize buffer for line assembly
+
           // Loop through all events from the backend process
           while let Some(event) = rx.recv().await {
              match event {
                // When the backend prints to stdout
-               tauri_plugin_shell::process::CommandEvent::Stdout(line) => {
-                  // Convert bytes to a string
-                  let line_str = String::from_utf8_lossy(&line);
-                  // Use println! so it shows up in release builds on stdout
-                  println!("Sidecar: {}", line_str);
-                  
-                  // Look for the special "ACTUAL_PORT: <number>" message
-                  if line_str.contains("ACTUAL_PORT: ") {
-                    if let Some(port_str) = line_str.split("ACTUAL_PORT: ").last() {
-                        // Try to parse the port number
-                        if let Ok(port) = port_str.trim().parse::<u16>() {
-                            // Send the port through the channel
-                            // The get_backend_port command is waiting for this!
-                            let _ = tx_port.send(port);
-                        }
-                    }
-                  }
+               tauri_plugin_shell::process::CommandEvent::Stdout(data) => {
+                  // Append new data to buffer
+                  buf.extend_from_slice(&data);
 
-                  // Look for the shutdown completion message
-                  if line_str.contains("BACKEND_SHUTDOWN_COMPLETE") {
-                    let _ = tx_exit.send(());
+                  // Process all complete lines in the buffer
+                  while let Some(i) = buf.iter().position(|&b| b == b'\n') {
+                      // Extract the line including the newline
+                      let line_bytes: Vec<u8> = buf.drain(..=i).collect();
+                      let line_str = String::from_utf8_lossy(&line_bytes);
+                      
+                      // Use println! so it shows up in release builds on stdout
+                      print!("Sidecar: {}", line_str); // line_str already has newline
+
+                      // Look for the special "ACTUAL_PORT: <number>" message
+                      if line_str.contains("ACTUAL_PORT: ") {
+                        if let Some(port_str) = line_str.split("ACTUAL_PORT: ").last() {
+                            // Try to parse the port number
+                            if let Ok(port) = port_str.trim().parse::<u16>() {
+                                // Send the port through the channel
+                                let _ = tx_port.send(port);
+                            }
+                        }
+                      }
+
+                      // Look for the shutdown completion message
+                      if line_str.contains("BACKEND_SHUTDOWN_COMPLETE") {
+                        let _ = tx_exit.send(());
+                      }
                   }
                }
                // When the backend prints to stderr
