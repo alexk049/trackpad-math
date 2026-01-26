@@ -56,8 +56,8 @@ fn get_backend_port(state: tauri::State<'_, SidecarState>) -> Result<u16, String
     
     if let Some(rx) = rx {
         // Block this thread until we receive the port from the backend
-        // Timeout after 10 seconds to avoid hanging forever
-        match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+        // Timeout after 30 seconds to avoid hanging forever (increased from 10s)
+        match rx.recv_timeout(std::time::Duration::from_secs(30)) {
             Ok(port) => {
                 // Success! Cache the port for future calls
                 *state.port_value.lock().unwrap() = Some(port);
@@ -142,7 +142,8 @@ pub fn run() {
                tauri_plugin_shell::process::CommandEvent::Stdout(line) => {
                   // Convert bytes to a string
                   let line_str = String::from_utf8_lossy(&line);
-                  log::info!("Sidecar: {}", line_str);
+                  // Use println! so it shows up in release builds on stdout
+                  println!("Sidecar: {}", line_str);
                   
                   // Look for the special "ACTUAL_PORT: <number>" message
                   if line_str.contains("ACTUAL_PORT: ") {
@@ -160,6 +161,11 @@ pub fn run() {
                   if line_str.contains("BACKEND_SHUTDOWN_COMPLETE") {
                     let _ = tx_exit.send(());
                   }
+               }
+               // When the backend prints to stderr
+               tauri_plugin_shell::process::CommandEvent::Stderr(line) => {
+                  let line_str = String::from_utf8_lossy(&line);
+                  eprintln!("Sidecar Stderr: {}", line_str);
                }
                // When the backend process terminates
                tauri_plugin_shell::process::CommandEvent::Terminated(_) => {

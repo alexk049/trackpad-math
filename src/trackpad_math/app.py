@@ -5,7 +5,31 @@ from trackpad_math.db import init_db
 from trackpad_math.routers import websocket, data, settings
 from trackpad_math import state
 
-app = FastAPI(title="Trackpad Math")
+from contextlib import asynccontextmanager
+import threading
+import uvicorn
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize DB
+    init_db()
+
+    # Train model if not already trained (e.g., after seeding)
+    # Run in a separate thread so we don't block server startup
+    if not state.classifier.is_trained:
+        def train_background():
+            print("Background: Starting model training...", flush=True)
+            state.train_model()
+            print("Background: Model training complete.", flush=True)
+        
+        training_thread = threading.Thread(target=train_background, daemon=True)
+        training_thread.start()
+    
+    yield
+    
+    # Shutdown logic if needed
+
+app = FastAPI(title="Trackpad Math", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,18 +43,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize DB
-init_db()
-
-# Train model if not already trained (e.g., after seeding)
-if not state.classifier.is_trained:
-    state.train_model()
-
 # Include Routers
 app.include_router(settings.router)
 app.include_router(data.router)
 app.include_router(websocket.router)
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
