@@ -22,7 +22,7 @@ export default function DataPage() {
 
 
     const fetchLabels = async () => {
-        const res = await fetch(`${API_BASE_URL}/api/labels`);
+        const res = await fetch(`${API_BASE_URL()}/api/labels`);
         const json = await res.json();
         setData(json);
     };
@@ -30,7 +30,7 @@ export default function DataPage() {
     const fetchDrawings = async (label: string) => {
         // Fetchings all and filtering client side as per original logic for now
         // Ideally backend supports filtering
-        const res = await fetch(`${API_BASE_URL}/api/drawings?limit=1000`);
+        const res = await fetch(`${API_BASE_URL()}/api/drawings?limit=1000`);
         const json: Drawing[] = await res.json();
         const filtered = json.filter(d => d.label === label);
         setDrawings(filtered);
@@ -48,7 +48,7 @@ export default function DataPage() {
     };
 
     const handleDeleteDrawings = async (ids: string[]) => {
-        await Promise.all(ids.map(id => fetch(`${API_BASE_URL}/api/drawings/${id}`, { method: 'DELETE' })));
+        await Promise.all(ids.map(id => fetch(`${API_BASE_URL()}/api/drawings/${id}`, { method: 'DELETE' })));
         if (selectedLabel) {
             fetchDrawings(selectedLabel);
             fetchLabels(); // Update counts
@@ -57,7 +57,7 @@ export default function DataPage() {
 
     const savePoints = useCallback(async (label: string, points: any) => {
         try {
-            await fetch(`${API_BASE_URL}/api/teach`, {
+            await fetch(`${API_BASE_URL()}/api/teach`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ label, points })

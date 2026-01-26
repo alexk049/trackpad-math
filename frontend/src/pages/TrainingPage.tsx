@@ -40,7 +40,7 @@ export default function TrainingPage() {
 
     // Fetch categories
     useEffect(() => {
-        fetch(`${API_BASE_URL}/api/symbols/categorized`)
+        fetch(`${API_BASE_URL()}/api/symbols/categorized`)
             .then(res => res.json())
             .then(setCategories)
             .catch(err => console.error("Failed to fetch symbols", err));
@@ -106,7 +106,7 @@ export default function TrainingPage() {
 
         // Save the recording
         try {
-            await fetch(`${API_BASE_URL}/api/teach`, {
+            await fetch(`${API_BASE_URL()}/api/teach`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ label: currentSymbol, points: lastRecording })

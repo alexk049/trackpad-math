@@ -13,13 +13,13 @@ export default function OptionsPage() {
     const { colorScheme, setColorScheme } = useMantineColorScheme();
 
     useEffect(() => {
-        fetch(`${API_BASE_URL}/api/settings`).then((res) => res.json()).then(setSettings);
+        fetch(`${API_BASE_URL()}/api/settings`).then((res) => res.json()).then(setSettings);
     }, []);
 
     const update = async (newSettings: any) => {
         const s = { ...settings, ...newSettings };
         setSettings(s);
-        await fetch(`${API_BASE_URL}/api/settings`, {
+        await fetch(`${API_BASE_URL()}/api/settings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(s),
@@ -102,14 +102,14 @@ export default function OptionsPage() {
                             if (!file) return;
                             const formData = new FormData();
                             formData.append('file', file);
-                            await fetch(`${API_BASE_URL}/api/data/import`, { method: 'POST', body: formData });
+                            await fetch(`${API_BASE_URL()}/api/data/import`, { method: 'POST', body: formData });
                         }} accept="application/json">
                             {(props) => <Button {...props} leftSection={<IconUpload size={16} />} variant="default">Import Data</Button>}
                         </FileButton>
-                        <Button onClick={() => window.location.href = `${API_BASE_URL}/api/data/export`} leftSection={<IconDownload size={16} />} variant="default">Export Data</Button>
+                        <Button onClick={() => window.location.href = `${API_BASE_URL()}/api/data/export`} leftSection={<IconDownload size={16} />} variant="default">Export Data</Button>
                         <Button onClick={async () => {
                             if (!confirm('Are you sure you want to delete ALL training data? This cannot be undone.')) return;
-                            await fetch(`${API_BASE_URL}/api/data/reset`, { method: 'DELETE' });
+                            await fetch(`${API_BASE_URL()}/api/data/reset`, { method: 'DELETE' });
                         }} leftSection={<IconTrash size={16} />} color="red" variant="filled">Delete All Data</Button>
                     </Group>
                 </Card>

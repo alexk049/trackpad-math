@@ -63,7 +63,7 @@ export function useRecorder(manualMode: boolean = false) {
     const startPosRef = useRef<{ x: number, y: number } | null>(null);
 
     useEffect(() => {
-        fetch(`${API_BASE_URL}/api/settings`)
+        fetch(`${API_BASE_URL()}/api/settings`)
             .then(res => res.json())
             .then(data => setSettings(data))
             .catch(err => console.error("Failed to fetch settings:", err));
@@ -117,7 +117,7 @@ export function useRecorder(manualMode: boolean = false) {
     }, [startRecordingSequence]);
 
     useEffect(() => {
-        const wsUrl = API_BASE_URL.replace('http', 'ws') + '/ws/record';
+        const wsUrl = API_BASE_URL().replace('http', 'ws') + '/ws/record';
         ws.current = new WebSocket(wsUrl);
 
         // ws.current.onopen = () => console.log('Recorder WS Connected');

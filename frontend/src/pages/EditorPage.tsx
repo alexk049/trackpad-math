@@ -49,7 +49,7 @@ export default function EditorPage() {
     }, [isRecording]);
 
     useEffect(() => {
-        fetch(`${API_BASE_URL}/api/settings`)
+        fetch(`${API_BASE_URL()}/api/settings`)
             .then(res => res.json())
             .then(data => setSettings(data))
             .catch(err => console.error("Failed to fetch settings:", err));
@@ -61,7 +61,7 @@ export default function EditorPage() {
 
     // Classification WebSocket Setup
     useEffect(() => {
-        const wsUrl = API_BASE_URL.replace('http', 'ws') + '/ws/record';
+        const wsUrl = API_BASE_URL().replace('http', 'ws') + '/ws/record';
         classificationWs.current = new WebSocket(wsUrl);
 
         classificationWs.current.onmessage = (event) => {
@@ -234,7 +234,7 @@ export default function EditorPage() {
         }
 
         try {
-            const res = await fetch(`${API_BASE_URL}/api/teach`, {
+            const res = await fetch(`${API_BASE_URL()}/api/teach`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

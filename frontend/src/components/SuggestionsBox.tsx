@@ -19,7 +19,7 @@ export function SuggestionsBox({ candidates, onSelect, onConfirmRetrain, onClose
 
     useEffect(() => {
         if (isOtherActive && allSymbols.length === 0) {
-            fetch(`${API_BASE_URL}/api/labels`)
+            fetch(`${API_BASE_URL()}/api/labels`)
                 .then(res => res.json())
                 .then(data => {
                     const sorted = data.map((d: any) => d.label).sort();
