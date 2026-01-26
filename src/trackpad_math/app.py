@@ -14,6 +14,10 @@ async def lifespan(app: FastAPI):
     # Initialize DB
     init_db()
 
+    # We'll load it in app.py startup or here, but here is safer for instantiation
+    if not state.classifier.load():
+        print("WARNING: Model not found. Predictions will fail until trained.")
+    
     # Train model if not already trained (e.g., after seeding)
     # Run in a separate thread so we don't block server startup
     if not state.classifier.is_trained:

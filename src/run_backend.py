@@ -100,7 +100,9 @@ def main():
         base_dir.mkdir(parents=True, exist_ok=True)
         db_path = base_dir / "app.db"
         os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
+        os.environ["APP_DATA_DIR"] = str(base_dir)
         print(f"Database path set to: {os.environ['DATABASE_URL']}")
+        print(f"App Data path set to: {os.environ['APP_DATA_DIR']}")
 
     # Import app AFTER setting environment variable
     from trackpad_math.app import app

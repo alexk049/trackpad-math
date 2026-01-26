@@ -1,7 +1,6 @@
+import os
 from pydantic import BaseModel, ConfigDict
 from trackpad_math.model import SymbolClassifier
-import anyio
-from typing import Optional, List
 from trackpad_math.db import SessionLocal, Drawing
 
 # --- Models ---
@@ -14,16 +13,15 @@ class Settings(BaseModel):
     equation_scroll_y_sensitivity: int = 20
 
 # --- Global Components ---
-
+ 
 # Classifier Instance
-classifier = SymbolClassifier(model_type="knn") 
-
-# We'll load it in app.py startup or here, but here is safer for instantiation
-if not classifier.load():
-    print("WARNING: Model not found. Predictions will fail until trained.")
-
-# Global Task Group (initialized in app lifespan)
-drawing_processor_tg: Optional[anyio.abc.TaskGroup] = None
+app_data_dir = os.environ.get("APP_DATA_DIR")
+if app_data_dir:
+    base_model_path = os.path.join(app_data_dir, "model")
+    classifier = SymbolClassifier(model_type="knn", base_path=base_model_path)
+else:
+    # Default to current directory if not running in bundled mode
+    classifier = SymbolClassifier(model_type="knn") 
 
 def train_model():
     """Fetches all drawings from DB and trains the classifier."""
