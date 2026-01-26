@@ -1,0 +1,62 @@
+name: "Release Ubuntu"
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: install rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libglib2.0-dev
+
+      - name: install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: install python dependencies
+        run: uv sync
+
+      - name: build python sidecar
+        run: |
+          uv run pyinstaller build_backend.spec --noconfirm
+          mkdir -p frontend/src-tauri/binaries
+          # Move binary and apply executable permissions
+          cp dist/trackpad-math-backend frontend/src-tauri/binaries/trackpad-math-backend-x86_64-unknown-linux-gnu
+          chmod +x frontend/src-tauri/binaries/trackpad-math-backend-x86_64-unknown-linux-gnu
+        shell: bash
+
+      - name: install frontend dependencies
+        run: cd frontend && npm install
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: app-v__VERSION__
+          releaseName: "App v__VERSION__"
+          releaseBody: "Ubuntu Build: See the assets below to download the .deb or AppImage."
+          releaseDraft: true
+          prerelease: false
+          projectPath: frontend
