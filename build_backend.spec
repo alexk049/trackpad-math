@@ -27,7 +27,7 @@ from PyInstaller.utils.hooks import collect_all
 tmp_datas = []
 tmp_binaries = []
 
-for package in ['sklearn', 'scipy', 'fastdtw', 'pynput', 'pandas']:
+for package in ['sklearn', 'scipy', 'fastdtw', 'pynput', 'pandas', 'Xlib']:
     p_datas, p_binaries, p_hidden = collect_all(package)
     tmp_datas.extend(p_datas)
     tmp_binaries.extend(p_binaries)

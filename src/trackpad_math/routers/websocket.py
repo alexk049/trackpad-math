@@ -5,7 +5,6 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from trackpad_math.state import classifier
 from trackpad_math.socket_manager import manager
-from pynput import mouse
 
 router = APIRouter()
 
@@ -49,6 +48,7 @@ async def websocket_record(websocket: WebSocket):
 
 def reset_cursor(x, y):
     try:
+        from pynput import mouse
         mouse_controller = mouse.Controller()
         mouse_controller.position = (x, y)
     except Exception as e:

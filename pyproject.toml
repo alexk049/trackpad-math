@@ -20,6 +20,7 @@ dependencies = [
     "httpx>=0.28.1",
     "pyinstaller>=6.17.0",
     "python-multipart>=0.0.20",
+    "python-xlib>=0.33; sys_platform == 'linux'",
 ]
 
 [project.scripts]
