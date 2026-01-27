@@ -41,6 +41,7 @@ app.add_middleware(
         "http://localhost:5173",    # Dev origin (Vite)
         "tauri://localhost",        # Prod origin (Linux/macOS)
         "https://tauri.localhost", # Prod origin (Windows)
+        "http://tauri.localhost", # Prod origin (Windows)
     ],
     allow_credentials=True,
     allow_methods=["*"],
