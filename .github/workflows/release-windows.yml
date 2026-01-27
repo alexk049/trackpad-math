@@ -1,0 +1,53 @@
+name: "Release - Windows"
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: install rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: install python dependencies
+        run: uv sync
+
+      - name: build python sidecar
+        run: |
+          uv run pyinstaller build_backend.spec --noconfirm
+          mkdir -p frontend/src-tauri/binaries
+          cp dist/trackpad-math-backend.exe frontend/src-tauri/binaries/trackpad-math-backend-x86_64-pc-windows-msvc.exe
+        shell: bash
+
+      - name: install frontend dependencies
+        run: cd frontend && npm install
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: app-v__VERSION__
+          releaseName: "App v__VERSION__ (Windows)"
+          releaseDraft: true
+          prerelease: false
+          projectPath: frontend
