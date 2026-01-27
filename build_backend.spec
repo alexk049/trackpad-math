@@ -27,11 +27,22 @@ from PyInstaller.utils.hooks import collect_all
 tmp_datas = []
 tmp_binaries = []
 
-for package in ['sklearn', 'scipy', 'fastdtw', 'pynput', 'pandas', 'Xlib']:
-    p_datas, p_binaries, p_hidden = collect_all(package)
-    tmp_datas.extend(p_datas)
-    tmp_binaries.extend(p_binaries)
-    hidden_imports.extend(p_hidden)
+# Define packages to collect. Include numpy to ensure all DLLs are bundled (crucial for Windows)
+packages = ['sklearn', 'scipy', 'fastdtw', 'pynput', 'pandas', 'numpy']
+
+# Only try to collect Xlib if it's installed (Linux specific)
+import importlib.util
+if importlib.util.find_spec("Xlib"):
+    packages.append("Xlib")
+
+for package in packages:
+    try:
+        p_datas, p_binaries, p_hidden = collect_all(package)
+        tmp_datas.extend(p_datas)
+        tmp_binaries.extend(p_binaries)
+        hidden_imports.extend(p_hidden)
+    except Exception as e:
+        print(f"WARNING: Failed to collect dependencies for {package}: {e}")
 
 
 a = Analysis(
