@@ -20,14 +20,25 @@ hidden_imports = [
     'scipy.special.cython_special',
     'sklearn.tree._utils', 
 ]
-hidden_imports += collect_submodules('sklearn')
-hidden_imports += collect_submodules('fastdtw')
+
+# Use collect_all to robustly gather all components of complex libraries
+from PyInstaller.utils.hooks import collect_all
+
+tmp_datas = []
+tmp_binaries = []
+
+for package in ['sklearn', 'scipy', 'fastdtw', 'pynput', 'pandas']:
+    p_datas, p_binaries, p_hidden = collect_all(package)
+    tmp_datas.extend(p_datas)
+    tmp_binaries.extend(p_binaries)
+    hidden_imports.extend(p_hidden)
+
 
 a = Analysis(
     ['src/run_backend.py'],
     pathex=[],
-    binaries=[],
-    datas=[('src/trackpad_math/data/seed_drawings.json', 'trackpad_math/data')],
+    binaries=tmp_binaries,
+    datas=[('src/trackpad_math/data/seed_drawings.json', 'trackpad_math/data')] + tmp_datas,
     hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},

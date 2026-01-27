@@ -105,15 +105,28 @@ def main():
         print(f"App Data path set to: {os.environ['APP_DATA_DIR']}")
 
     # Import app AFTER setting environment variable
-    from trackpad_math.app import app
-    
     try:
+        from trackpad_math.app import app
         asyncio.run(run_server(app, host="127.0.0.1", port=0))
     except Exception as e:
-        print(f"Backend: Main error: {e}", flush=True)
+        error_msg = f"Backend: Critical startup error: {e}"
+        print(error_msg, flush=True)
+        
+        # Try to write to a log file for debugging
+        try:
+            import traceback
+            app_dir = os.environ.get("APP_DATA_DIR")
+            if app_dir:
+                log_path = os.path.join(app_dir, "backend_startup_error.log")
+                with open(log_path, "w") as f:
+                    f.write(error_msg + "\n")
+                    traceback.print_exc(file=f)
+                print(f"Backend: Error log written to {log_path}", flush=True)
+        except Exception as log_error:
+            print(f"Backend: Failed to write error log: {log_error}", flush=True)
+            
         sys.exit(1)
-    finally:
-        sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
