@@ -51,7 +51,7 @@ sudo apt-get install libwebkit2gtk-4.1-dev build-essential curl wget file libssl
    ```bash
    uv sync
    # Start the backend server
-   uv run python src/run_backend.py
+   uv run python src/trackpad_math/app.py
    ```
 
 2. **Initialize Sidecar Dummy**:
@@ -91,6 +91,13 @@ sudo apt-get install libwebkit2gtk-4.1-dev build-essential curl wget file libssl
    npm install
    # Launch the Tauri development environment
    npm run tauri dev
+   ```
+
+**Note**: 
+   If you want to run sidecar in development, compile the python backend and move it to the correct location as shown below. Then run the following commands:
+   ```bash
+   cd frontend
+   npm run tauri dev -- --release
    ```
 
 ---
