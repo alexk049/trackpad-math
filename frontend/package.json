@@ -14,6 +14,7 @@
     "@mantine/core": "^8.3.10",
     "@mantine/hooks": "^8.3.10",
     "@tabler/icons-react": "^3.35.0",
+    "@tauri-apps/plugin-log": "^2.8.0",
     "@tauri-apps/plugin-shell": "^2.3.3",
     "clsx": "^2.1.1",
     "mathlive": "^0.108.2",

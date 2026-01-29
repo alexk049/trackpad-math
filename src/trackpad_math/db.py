@@ -39,9 +39,8 @@ class DBSetting(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
-    seed_db()
 
-def seed_db():
+def seed_db_if_empty():
     db = SessionLocal()
     try:
         # Check if settings exist (and create default if not)

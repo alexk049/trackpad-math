@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
-
 import MainLayout from './components/MainLayout';
 import EditorPage from './pages/EditorPage';
 import OptionsPage from './pages/Options';
@@ -9,6 +8,7 @@ import DataPage from './pages/DataPage';
 import TrainingPage from './pages/TrainingPage';
 import LoadingPage from './pages/LoadingPage';
 import { getApiBaseUrl, setApiPort } from './config';
+import { info, debug, error } from '@tauri-apps/plugin-log';
 
 function App() {
   const [isReady, setIsReady] = useState(false);
@@ -21,18 +21,16 @@ function App() {
 
     try {
       // 0. In production, get the dynamic port from Tauri
-      console.log("import.meta.env.DEV", import.meta.env.DEV);
-      if (!import.meta.env.DEV) {
-        setStatusMessage('Getting backend port...');
-        try {
-          // This call blocks until the backend reports its actual port
-          const port = await invoke<number>('get_backend_port');
-          setApiPort(port);
-          console.log(`Using dynamic backend port: ${port}`);
-        } catch (e) {
-          console.error('Failed to get backend port from Tauri:', e);
-          // Fall back to default port 8000
-        }
+      setStatusMessage('Getting backend port...');
+      info("Getting backend port")
+      try {
+        // This call blocks until the backend reports its actual port
+        const port = await invoke<number>('get_backend_port');
+        setApiPort(port);
+        info(`Using dynamic backend port: ${port}`);
+      } catch (e) {
+        error('Failed to get backend port from Tauri:' + e);
+        // Fall back to default port 8000
       }
 
       const API_BASE_URL = getApiBaseUrl();
@@ -58,9 +56,12 @@ function App() {
       }
 
       // 2. Check model status
+      debug("Checking model status");
       setStatusMessage('Checking recognition model...');
       const statusRes = await fetch(`${API_BASE_URL}/api/status`);
-      if (!statusRes.ok) throw new Error('Failed to fetch model status');
+      if (!statusRes.ok) {
+        throw new Error('Failed to fetch model status');
+      }
 
       const statusData = await statusRes.json();
       if (!statusData.model_loaded) {
@@ -70,12 +71,14 @@ function App() {
       // 3. Fetch settings
       setStatusMessage('Loading preferences...');
       const settingsRes = await fetch(`${API_BASE_URL}/api/settings`);
-      if (!settingsRes.ok) throw new Error('Failed to fetch application settings');
+      if (!settingsRes.ok) {
+        throw new Error('Failed to fetch application settings');
+      }
 
       // Success
       setIsReady(true);
     } catch (e: any) {
-      console.error('Initialization error:', e);
+      error("Initialization error: " + e);
       setInitError(e.message || 'An unexpected error occurred during startup.');
     }
   };
@@ -88,7 +91,7 @@ function App() {
       if (mounted) {
         initApp();
       }
-    }, 0);
+    }, 100);
 
     return () => {
       mounted = false;
