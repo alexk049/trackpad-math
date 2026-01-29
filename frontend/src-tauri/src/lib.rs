@@ -87,6 +87,8 @@ fn spawn_production_sidecar(app: &tauri::App) -> Result<(), Box<dyn std::error::
                         log::info!(target: target, "{}", line_str.replace("[INFO]", "").trim());
                     } else if line_str.contains("[DEBUG]") {
                         log::debug!(target: target, "{}", line_str.replace("[DEBUG]", "").trim());
+                    } else {
+                        log::debug!(target: target, "{}", line_str.trim());
                     }
 
                     // Port Parsing
