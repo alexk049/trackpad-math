@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from trackpad_math.state import Settings, classifier
+from trackpad_math import state
+from trackpad_math.state import Settings
 from trackpad_math.db import get_db, DBSetting
 
 router = APIRouter()
@@ -8,8 +9,8 @@ router = APIRouter()
 @router.get("/api/status")
 def get_status():
     return {
-        "model_loaded": classifier.is_trained,
-        "model_type": classifier.model_type,
+        "model_loaded": state.classifier.is_trained,
+        "model_type": state.classifier.model_type,
     }
 
 @router.post("/api/settings")

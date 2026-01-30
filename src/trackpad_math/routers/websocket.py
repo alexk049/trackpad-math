@@ -3,7 +3,8 @@ from typing import Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.concurrency import run_in_threadpool
-from trackpad_math.state import classifier
+from trackpad_math import state
+
 from trackpad_math.socket_manager import manager
 
 router = APIRouter()
@@ -55,12 +56,12 @@ def reset_cursor(x, y):
         print(f"Warning: Could not reset cursor: {e}")
 
 async def process_classification(points):
-    if not classifier.is_trained:
+    if not state.classifier.is_trained:
         await manager.broadcast({"status": "error", "message": "Model not trained"})
         return
 
     # Run heavy prediction in threadpool
-    predictions = await run_in_threadpool(classifier.predict, points)
+    predictions = await run_in_threadpool(state.classifier.predict, points)
     
     if not predictions:
         await manager.broadcast({"status": "idle", "message": "No prediction"})

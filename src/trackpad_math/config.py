@@ -20,36 +20,8 @@ def setup_general_logger():
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
 
-setup_general_logger()
-
-# --- App Data Directory ---
-app_name = "trackpad-math"
-home = pathlib.Path.home()
-
-# Determine App Data Directory (Cross-Platform)
-# Use env var if set (e.g. by Tauri), otherwise detect
-if os.environ.get("APP_DATA_DIR"):
-    logging.getLogger("app").info(f"Using dir from tauri")
-    app_data_dir = pathlib.Path(os.environ["APP_DATA_DIR"])
-else:
-    logging.getLogger("app").info(f"Creating app dir")
-    if sys.platform == "win32":
-        app_data_dir = pathlib.Path(os.environ.get("APPDATA", home / "AppData" / "Local")) / app_name
-    elif sys.platform == "darwin":
-        app_data_dir = home / "Library" / "Application Support" / app_name
-    else:
-        # Linux and others
-        app_data_dir = home / ".local" / "share" / app_name
-    app_data_dir.mkdir(parents=True, exist_ok=True)
-    os.environ["APP_DATA_DIR"] = str(app_data_dir)
-
-# --- Database ---
-if not os.environ.get("DATABASE_URL"):
-    db_path = str(os.environ.get("APP_DATA_DIR")) + "/app.db"
-    os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
-
 # --- App Crash Logging ---
-def setup_crash_logger():
+def setup_crash_logger(app_data_dir: pathlib.Path):
     crash_logger = logging.getLogger("app_crash")
     if crash_logger.hasHandlers():
         return
@@ -63,8 +35,40 @@ def setup_crash_logger():
     crash_file_handler.setFormatter(formatter)
     crash_logger.addHandler(crash_file_handler)
 
-setup_crash_logger()
+def init_config():
+    """Initializes application configuration, logging, and data directories."""
+    setup_general_logger()
+    logger = logging.getLogger("app")
 
-logger = logging.getLogger("app")
-logger.info(f"App Data Directory: {os.environ['APP_DATA_DIR']}")
-logger.info(f"Database Path: {os.environ['DATABASE_URL']}")
+    # --- App Data Directory ---
+    app_name = "trackpad-math"
+    home = pathlib.Path.home()
+
+    # Determine App Data Directory (Cross-Platform)
+    # Use env var if set (e.g. by Tauri), otherwise detect
+    if os.environ.get("APP_DATA_DIR"):
+        logger.info(f"Using dir from tauri")
+        app_data_dir = pathlib.Path(os.environ["APP_DATA_DIR"])
+    else:
+        logger.info(f"Creating app dir")
+        if sys.platform == "win32":
+            app_data_dir = pathlib.Path(os.environ.get("APPDATA", home / "AppData" / "Local")) / app_name
+        elif sys.platform == "darwin":
+            app_data_dir = home / "Library" / "Application Support" / app_name
+        else:
+            # Linux and others
+            app_data_dir = home / ".local" / "share" / app_name
+        app_data_dir.mkdir(parents=True, exist_ok=True)
+        os.environ["APP_DATA_DIR"] = str(app_data_dir)
+
+    # --- Database ---
+    if not os.environ.get("DATABASE_URL"):
+        db_path = str(os.environ.get("APP_DATA_DIR")) + "/app.db"
+        os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
+
+    setup_crash_logger(app_data_dir)
+
+    logger.info(f"App Data Directory: {os.environ['APP_DATA_DIR']}")
+    logger.info(f"Database Path: {os.environ['DATABASE_URL']}")
+    
+    return app_data_dir

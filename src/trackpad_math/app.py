@@ -1,20 +1,19 @@
-import sys
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import trackpad_math.config
+from trackpad_math import state
 from trackpad_math.db import init_db, seed_db_if_empty
 from trackpad_math.routers import websocket, data, settings
-from trackpad_math import state
 from contextlib import asynccontextmanager
 import threading
-import uvicorn
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize DB
     init_db()
     seed_db_if_empty()
+
+    logger = logging.getLogger("app")
 
     # We'll load it in app.py startup or here, but here is safer for instantiation
     if not state.classifier.load():
@@ -35,8 +34,6 @@ async def lifespan(app: FastAPI):
     
     # Shutdown logic goes here if needed
 
-logger = logging.getLogger("app")
-
 app = FastAPI(title="Trackpad Math", lifespan=lifespan)
 
 app.add_middleware(
@@ -56,6 +53,3 @@ app.add_middleware(
 app.include_router(settings.router)
 app.include_router(data.router)
 app.include_router(websocket.router)
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)

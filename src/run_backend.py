@@ -1,24 +1,15 @@
-"""
-Entry point for the backend server. This script initializes and runs the Uvicorn server, 
-ensuring compatibility with multiprocessing when bundled as an executable.
-
-Keeps application specific code in app.py from including deployment specific code
-like freeze_support().
-"""
 import os
 import sys
 import logging
 import threading
 import asyncio
 import multiprocessing
+import argparse
 import uvicorn
-import trackpad_math.config
-
-logger = logging.getLogger("app")
-crash_logger = logging.getLogger("app_crash")
 
 def listen_stdin(on_stop):
     """Listens for a shutdown command on stdin."""
+    logger = logging.getLogger("app")
     logger.info("Listening for shutdown signal on stdin.")
     try:
         for line in sys.stdin:
@@ -32,14 +23,16 @@ def listen_stdin(on_stop):
     finally:
         on_stop()
 
-async def run_server(app, host="127.0.0.1", port=0):
+async def run_server(app, host="127.0.0.1", port=0, dev_mode=False):
+    logger = logging.getLogger("app")
     stop_event = asyncio.Event()
     loop = asyncio.get_running_loop()
     
     def trigger_stop():
         loop.call_soon_threadsafe(stop_event.set)
 
-    threading.Thread(target=listen_stdin, args=(trigger_stop,), daemon=True).start()
+    if not dev_mode:
+        threading.Thread(target=listen_stdin, args=(trigger_stop,), daemon=True).start()
 
     config = uvicorn.Config(
         app, 
@@ -56,52 +49,79 @@ async def run_server(app, host="127.0.0.1", port=0):
     
     # Wait a bit for the server to actually start and bind to a port
     logger.debug("Waiting for server to start.")
-    actual_port = port
     while not server.started and not server_task.done():
         await asyncio.sleep(0.1)
     
-    logger.debug(f"Server started on port {actual_port}.")
     if server.started:
+        actual_port = port
         for s in server.servers:
             for sock in s.sockets:
                 actual_port = sock.getsockname()[1]
                 break
             break
-        #print to stdout for tauri to pick up
-        print(f"ACTUAL_PORT: {actual_port}", flush=True)
+        
+        logger.info(f"Server started on port {actual_port}.")
+        if not dev_mode:
+            # print to stdout for tauri to pick up
+            print(f"ACTUAL_PORT: {actual_port}", flush=True)
 
-    stop_task = asyncio.create_task(stop_event.wait())
-    
-    done, _ = await asyncio.wait(
-        [stop_task, server_task],
-        return_when=asyncio.FIRST_COMPLETED
-    )
-    
-    if stop_task in done and not server.should_exit:
-        logger.debug("Main thread received shutdown signal, initiating server shutdown.")
-        server.should_exit = True
-    
-    await server_task
-    
-    if not stop_task.done():
-        stop_task.cancel()
+    if dev_mode:
+        # In dev mode, just wait for the server task to complete (e.g. via Ctrl+C)
+        await server_task
+    else:
+        stop_task = asyncio.create_task(stop_event.wait())
+        
+        done, _ = await asyncio.wait(
+            [stop_task, server_task],
+            return_when=asyncio.FIRST_COMPLETED
+        )
+        
+        if stop_task in done and not server.should_exit:
+            logger.debug("Main thread received shutdown signal, initiating server shutdown.")
+            server.should_exit = True
+        
+        await server_task
+        
+        if not stop_task.done():
+            stop_task.cancel()
 
     logger.info("Main thread cleanly exited.")
 
 def main():
+    parser = argparse.ArgumentParser(description="Trackpad Math Backend")
+    parser.add_argument("--dev", action="store_true", help="Run in development mode")
+    args = parser.parse_args()
+
     # PyInstaller freeze support for multiprocessing
     multiprocessing.freeze_support()
+
+    # Import config and state to initialize them
+    from trackpad_math import config, state
+    
+    # Initialize config first to set up environment variables and logging
+    config.init_config()
+    # Initialize state (needs APP_DATA_DIR from config)
+    state.init_state()
+
+    logger = logging.getLogger("app")
+    crash_logger = logging.getLogger("app_crash")
 
     # Import and Run App
     try:
         from trackpad_math.app import app
-        logger.info("FastAPI app imported successfully.")
+        logger.info(f"FastAPI app imported successfully. Dev mode: {args.dev}")
         
-        asyncio.run(run_server(app, host="127.0.0.1", port=0))
+        host = "127.0.0.1"
+        port = 8000 if args.dev else 0
+        
+        asyncio.run(run_server(app, host=host, port=port, dev_mode=args.dev))
         
     except Exception as e:
         crash_logger.critical(f"Critical startup error: {e}", exc_info=True)
+        # Also print to stderr for visible feedback in terminal
+        print(f"Critical startup error: {e}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
     main()
+

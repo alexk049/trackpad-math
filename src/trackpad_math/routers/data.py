@@ -8,7 +8,7 @@ from sqlalchemy import func
 from pydantic import BaseModel
 
 from trackpad_math.db import get_db, Drawing
-from trackpad_math.state import classifier
+from trackpad_math import state
 
 router = APIRouter()
 
@@ -108,7 +108,7 @@ async def teach_symbol(req: TeachRequest, db: Session = Depends(get_db)):
     
     # Incrementally update the model with the new example
     try:
-        classifier.add_example(points_to_save, req.label)
+        state.classifier.add_example(points_to_save, req.label)
         model_updated = True
     except Exception as e:
         print(f"Warning: Could not update model incrementally: {e}")
@@ -171,7 +171,7 @@ async def import_data(file: UploadFile, db: Session = Depends(get_db)):
 
     # Retrain model with all imported data
     try:
-        classifier.train([item["points"] for item in data if "points" in item and "label" in item], 
+        state.classifier.train([item["points"] for item in data if "points" in item and "label" in item], 
                          [item["label"] for item in data if "points" in item and "label" in item])
     except Exception as e:
         print(f"Warning: Could not retrain model after import: {e}")
@@ -184,7 +184,7 @@ def reset_data(db: Session = Depends(get_db)):
     try:
         db.query(Drawing).delete()
         db.commit()
-        classifier.reset()
+        state.classifier.reset()
         return {"status": "reset"}
     except Exception as e:
         db.rollback()

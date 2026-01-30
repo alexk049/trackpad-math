@@ -15,13 +15,27 @@ class Settings(BaseModel):
 
 # --- Global Components ---
 
-# Classifier Instance
-base_model_path = os.path.join(os.environ.get("APP_DATA_DIR"), "model")
-classifier = SymbolClassifier(model_type="knn", base_path=base_model_path)
+# Classifier Instance (initialized via init_state)
+classifier: SymbolClassifier = None
+
+def init_state():
+    """Initializes global application state."""
+    global classifier
+    
+    app_data_dir = os.environ.get("APP_DATA_DIR")
+    if not app_data_dir:
+        raise RuntimeError("APP_DATA_DIR environment variable not set. Did you call init_config()?")
+        
+    base_model_path = os.path.join(app_data_dir, "model")
+    classifier = SymbolClassifier(model_type="knn", base_path=base_model_path)
+
+    logger = logging.getLogger("app")
+    logger.info("state loaded")
 
 def train_model_on_db_data():
     """Fetches all drawings from DB and trains the classifier."""
     db = SessionLocal()
+    logger = logging.getLogger("app")
     try:
         drawings = db.query(Drawing).all()
         if not drawings:
@@ -37,5 +51,4 @@ def train_model_on_db_data():
     finally:
         db.close()
 
-logger = logging.getLogger("app")
-logger.info("state loaded")
+
