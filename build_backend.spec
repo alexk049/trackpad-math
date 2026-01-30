@@ -27,8 +27,8 @@ from PyInstaller.utils.hooks import collect_all
 tmp_datas = []
 tmp_binaries = []
 
-# Define packages to collect. Include numpy to ensure all DLLs are bundled (crucial for Windows)
-packages = ['sklearn', 'scipy', 'fastdtw', 'pynput', 'pandas', 'numpy']
+# Define packages to collect.
+packages = ['sklearn', 'scipy', 'fastdtw', 'pynput', 'numpy']
 
 # Only try to collect Xlib if it's installed (Linux specific)
 import importlib.util
@@ -54,7 +54,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['pandas', 'matplotlib', 'streamlit', 'PIL', 'altgraph'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
@@ -73,7 +73,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=True,

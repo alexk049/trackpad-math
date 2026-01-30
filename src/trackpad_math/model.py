@@ -1,11 +1,5 @@
-import pickle
-import numpy as np
-from typing import List, Tuple, Any, Dict, Optional, Union
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import RandomForestClassifier
 import os
-from scipy.spatial.distance import euclidean
-from fastdtw import fastdtw
+from typing import List, Tuple, Any, Dict, Optional, Union
 
 from trackpad_math.processing import extract_features, normalize, resample_drawing, segment_strokes
 
@@ -18,14 +12,14 @@ class SymbolClassifier:
         self.base_path = base_path
         self.model_path = f"{base_path}_{self.model_type}.pkl"
         self.is_trained = False
-        
         self.model: Any = None
-        self._init_model()
-
+        
     def _init_model(self):
         if self.model_type == "knn":
+            from sklearn.neighbors import KNeighborsClassifier
             self.model = KNeighborsClassifier(n_neighbors=3)
         elif self.model_type == "rf":
+            from sklearn.ensemble import RandomForestClassifier
             self.model = RandomForestClassifier(n_estimators=100)
         elif self.model_type == "dtw":
             # DTW is lazy, "training" is just storing templates
@@ -37,6 +31,10 @@ class SymbolClassifier:
         """
         drawings: List of flat points for each example.
         """
+        import numpy as np
+        if self.model is None:
+            self._init_model()
+        
         if self.model_type == "dtw":
             self._train_dtw(drawings, labels)
         else:
@@ -47,12 +45,14 @@ class SymbolClassifier:
 
     def reset(self):
         """Reset the model to an untrained state."""
+        self.model = None
         self._init_model()
         self.is_trained = False
         if os.path.exists(self.model_path):
             os.remove(self.model_path)
 
     def _train_sklearn(self, drawings: List[Points], labels: List[str]):
+        import numpy as np
         X = []
         y = []
         for d, label in zip(drawings, labels):
@@ -70,6 +70,7 @@ class SymbolClassifier:
         self.model.fit(X, y)
 
     def _train_dtw(self, drawings: List[Points], labels: List[str]):
+        import numpy as np
         # specific preprocessing for DTW: normalize + resample -> keep as sequence of points
         templates = []
         for d in drawings:
@@ -98,8 +99,13 @@ class SymbolClassifier:
         if not self.is_trained:
             # Try loading
             if not self.load():
+                if self.model is None:
+                    self._init_model()
                 return [("Uninitialized", 0.0)]
         
+        if self.model is None:
+            self._init_model()
+
         if self.model_type == "dtw":
             return self._predict_dtw(points)
         else:
@@ -119,6 +125,9 @@ class SymbolClassifier:
         return results
 
     def _predict_dtw(self, points: Points) -> List[Tuple[str, float]]:
+        from scipy.spatial.distance import euclidean
+        from fastdtw import fastdtw
+        import numpy as np
         # Preprocess input same as training
         strokes = segment_strokes(points)
         norm_strokes = normalize(strokes)
@@ -173,6 +182,9 @@ class SymbolClassifier:
         Increment incrementally update the model with a new example.
         Only supported for clean 'instance-based' models like KNN and DTW.
         """
+        if self.model is None:
+            self._init_model()
+
         if self.model_type == "rf":
             print("Warning: Random Forest does not support incremental updates. Training required.")
             return
@@ -198,6 +210,7 @@ class SymbolClassifier:
         if self.model_type == "knn":
             # For KNN, we need to add to the existing training set.
             # Sklearn's KNN stores data in _fit_X and encoded labels in _y.
+            import numpy as np
             
             new_features = extract_features(strokes).reshape(1, -1)
             
@@ -222,10 +235,12 @@ class SymbolClassifier:
             self.save()
 
     def save(self):
+        import pickle
         with open(self.model_path, 'wb') as f:
             pickle.dump(self.model, f)
             
     def load(self) -> bool:
+        import pickle
         if os.path.exists(self.model_path):
             with open(self.model_path, 'rb') as f:
                 self.model = pickle.load(f)
