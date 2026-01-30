@@ -51,7 +51,7 @@ sudo apt-get install libwebkit2gtk-4.1-dev build-essential curl wget file libssl
    ```bash
    uv sync
    # Start the backend server
-   uv run python src/trackpad_math/app.py
+   uv run python src/run_backend.py --dev
    ```
 
 2. **Initialize Sidecar Dummy**:
