@@ -43,7 +43,7 @@ fn get_backend_port(_state: tauri::State<'_, SidecarState>) -> Result<u16, Strin
 
         let rx = _state.port_rx.lock().unwrap().take();
         if let Some(rx) = rx {
-            match rx.recv_timeout(std::time::Duration::from_secs(30)) {
+            match rx.recv_timeout(std::time::Duration::from_secs(300)) {
                 Ok(port) => {
                     *cached = Some(port);
                     Ok(port)
@@ -144,7 +144,7 @@ pub fn run() {
         .manage(SidecarState::default())
         .invoke_handler(tauri::generate_handler![get_backend_port])
         .setup(|app| {
-            let app_data_dir = app.path().app_data_dir()?;
+            let app_data_dir = app.path().app_local_data_dir()?;
             std::fs::create_dir_all(&app_data_dir)?;
             std::env::set_var("APP_DATA_DIR", &app_data_dir);
 
