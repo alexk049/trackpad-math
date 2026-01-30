@@ -1,4 +1,4 @@
-name: "Release Ubuntu"
+name: "Release - Ubuntu"
 
 on:
   push:
