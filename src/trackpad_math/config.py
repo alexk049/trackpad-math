@@ -34,7 +34,7 @@ if os.environ.get("APP_DATA_DIR"):
 else:
     logging.getLogger("app").info(f"Creating app dir")
     if sys.platform == "win32":
-        app_data_dir = pathlib.Path(os.environ.get("APPDATA", home / "AppData" / "Roaming")) / app_name
+        app_data_dir = pathlib.Path(os.environ.get("APPDATA", home / "AppData" / "Local")) / app_name
     elif sys.platform == "darwin":
         app_data_dir = home / "Library" / "Application Support" / app_name
     else:
