@@ -5,6 +5,23 @@ import time
 import logging
 from logging.handlers import RotatingFileHandler
 
+# --- General Logging ---
+def setup_general_logger():
+    logger = logging.getLogger("app")
+    if logger.hasHandlers():
+        return
+    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        # fmt='[%(asctime)s][%(name)s][%(levelname)s] %(message)s',
+        fmt='[%(levelname)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    stream_handler = logging.StreamHandler(sys.stdout) # Stream Handler (logs to stdout for Tauri sidecar to capture)
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
+setup_general_logger()
+
 # --- App Data Directory ---
 app_name = "trackpad-math"
 home = pathlib.Path.home()
@@ -12,8 +29,10 @@ home = pathlib.Path.home()
 # Determine App Data Directory (Cross-Platform)
 # Use env var if set (e.g. by Tauri), otherwise detect
 if os.environ.get("APP_DATA_DIR"):
+    logging.getLogger("app").info(f"Using dir from tauri")
     app_data_dir = pathlib.Path(os.environ["APP_DATA_DIR"])
 else:
+    logging.getLogger("app").info(f"Creating app dir")
     if sys.platform == "win32":
         app_data_dir = pathlib.Path(os.environ.get("APPDATA", home / "AppData" / "Roaming")) / app_name
     elif sys.platform == "darwin":
@@ -28,25 +47,6 @@ else:
 if not os.environ.get("DATABASE_URL"):
     db_path = str(os.environ.get("APP_DATA_DIR")) + "/app.db"
     os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
-
-# --- General Logging ---
-def setup_general_logger():
-    logger = logging.getLogger("app")
-    if logger.hasHandlers():
-        return
-    logger.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        # fmt='[%(asctime)s][%(name)s][%(levelname)s] %(message)s',
-        fmt='[%(levelname)s] %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    app_log_file = app_data_dir / "backend.log"
-    file_handler = RotatingFileHandler(app_log_file, maxBytes=1024*1024, backupCount=5)
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    stream_handler = logging.StreamHandler(sys.stdout) # Stream Handler (logs to stdout for Tauri sidecar to capture)
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
 
 # --- App Crash Logging ---
 def setup_crash_logger():
@@ -63,7 +63,6 @@ def setup_crash_logger():
     crash_file_handler.setFormatter(formatter)
     crash_logger.addHandler(crash_file_handler)
 
-setup_general_logger()
 setup_crash_logger()
 
 logger = logging.getLogger("app")
