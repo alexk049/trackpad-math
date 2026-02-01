@@ -2,7 +2,7 @@ import os
 import logging
 from pydantic import BaseModel, ConfigDict
 from trackpad_math.model import SymbolClassifier
-from trackpad_math.db import SessionLocal, Drawing
+from trackpad_math.db import db, Drawing
 
 # --- Models ---
 class Settings(BaseModel):
@@ -34,10 +34,9 @@ def init_state():
 
 def train_model_on_db_data():
     """Fetches all drawings from DB and trains the classifier."""
-    db = SessionLocal()
-    logger = logging.getLogger("app")
-    try:
-        drawings = db.query(Drawing).all()
+    with db.session_scope() as session:
+        logger = logging.getLogger("app")
+        drawings = session.query(Drawing).all()
         if not drawings:
             logger.warning("No drawings found in DB for training.")
             return False
@@ -48,7 +47,5 @@ def train_model_on_db_data():
         logger.debug(f"Training model with {len(drawings)} examples.")
         classifier.train(points_list, labels_list)
         return True
-    finally:
-        db.close()
 
 

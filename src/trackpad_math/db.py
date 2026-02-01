@@ -1,21 +1,13 @@
 import sys
 import os
 import json
-
 import uuid
 import datetime
 from typing import List, Dict, Any, Optional
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine, Column, String, DateTime, func, Integer, Uuid, JSON, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
-from dotenv import load_dotenv
-
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")
-
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 class Base(DeclarativeBase):
     pass
@@ -37,47 +29,85 @@ class DBSetting(Base):
     equation_scroll_x_sensitivity: Mapped[int] = mapped_column(Integer, default=20)
     equation_scroll_y_sensitivity: Mapped[int] = mapped_column(Integer, default=20)
 
-def init_db():
-    Base.metadata.create_all(bind=engine)
+class Database:
+    def __init__(self):
+        self.engine = None
+        self.SessionLocal = None
 
-def seed_db_if_empty():
-    db = SessionLocal()
-    try:
-        # Check if settings exist (and create default if not)
-        if not db.query(DBSetting).first():
-            db.add(DBSetting(id=1))
-            db.commit()
-
-        # Check if drawings exist
-        if db.query(Drawing).first():
-            return
-
-        if getattr(sys, 'frozen', False):
-            # Running in a PyInstaller bundle
-            base_path = sys._MEIPASS
-            seed_file = os.path.join(base_path, "trackpad_math", "data", "seed_drawings.json")
-        else:
-            # Running in normal python environment
-            seed_file = os.path.join(os.path.dirname(__file__), "data", "seed_drawings.json")
+    def connect(self):
+        """Explicitly initialize the engine and session factory."""
+        if self.engine is None:
+            database_url = os.getenv("DATABASE_URL")
+            if not database_url:
+                database_url = "sqlite:///./app.db"
             
-        if not os.path.exists(seed_file):
-            print(f"Seed file not found: {seed_file}")
-            return
+            self.engine = create_engine(
+                database_url, 
+                connect_args={"check_same_thread": False} if "sqlite" in database_url else {}
+            )
+            self.SessionLocal = sessionmaker(
+                autocommit=False, 
+                autoflush=False, 
+                bind=self.engine
+            )
 
-        with open(seed_file, "r") as f:
-            drawings_data = json.load(f)
+    @contextmanager
+    def session_scope(self):
+        """Context manager for database sessions."""
+        if self.SessionLocal is None:
+            self.connect()
+        session = self.SessionLocal()
+        try:
+            yield session
+        finally:
+            session.close()
 
-        for d in drawings_data:
-            db.add(Drawing(label=d["label"], points=d["points"]))
-        
-        db.commit()
-        print(f"Seeded {len(drawings_data)} drawings.")
-    finally:
-        db.close()
+    def get_db(self):
+        """Dependency for FastAPI. Returns a generator."""
+        with self.session_scope() as session:
+            yield session
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    def init_db(self):
+        """Creates tables if they don't exist."""
+        self.connect()
+        Base.metadata.create_all(bind=self.engine)
+
+    def seed_if_empty(self):
+        """Seeds the database with default settings and symbols if it's empty."""
+        self.connect()
+        session = self.SessionLocal()
+        try:
+            # Check if settings exist (and create default if not)
+            if not session.query(DBSetting).first():
+                session.add(DBSetting(id=1))
+                session.commit()
+
+            # Check if drawings exist
+            if session.query(Drawing).first():
+                return
+
+            if getattr(sys, 'frozen', False):
+                # Running in a PyInstaller bundle
+                base_path = sys._MEIPASS
+                seed_file = os.path.join(base_path, "trackpad_math", "data", "seed_drawings.json")
+            else:
+                # Running in normal python environment
+                seed_file = os.path.join(os.path.dirname(__file__), "data", "seed_drawings.json")
+                
+            if not os.path.exists(seed_file):
+                print(f"Seed file not found: {seed_file}")
+                return
+
+            with open(seed_file, "r") as f:
+                drawings_data = json.load(f)
+
+            for d in drawings_data:
+                session.add(Drawing(label=d["label"], points=d["points"]))
+            
+            session.commit()
+            print(f"Seeded {len(drawings_data)} drawings.")
+        finally:
+            session.close()
+
+# Global database instance
+db = Database()

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from trackpad_math import state
 from trackpad_math.state import Settings
-from trackpad_math.db import get_db, DBSetting
+from trackpad_math.db import db, DBSetting
 
 router = APIRouter()
 
@@ -14,29 +14,29 @@ def get_status():
     }
 
 @router.post("/api/settings")
-def update_settings(s: Settings, db: Session = Depends(get_db)):
-    db_settings = db.query(DBSetting).first()
+def update_settings(s: Settings, session: Session = Depends(db.get_db)):
+    db_settings = session.query(DBSetting).first()
     if not db_settings:
         db_settings = DBSetting(id=1)
-        db.add(db_settings)
+        session.add(db_settings)
     
     db_settings.auto_mode = s.auto_mode
     db_settings.pause_threshold = s.pause_threshold
     db_settings.equation_scroll_x_sensitivity = s.equation_scroll_x_sensitivity
     db_settings.equation_scroll_y_sensitivity = s.equation_scroll_y_sensitivity
     
-    db.commit()
-    db.refresh(db_settings)
+    session.commit()
+    session.refresh(db_settings)
     
     return {"status": "updated", "settings": Settings.model_validate(db_settings)}
 
 @router.get("/api/settings")
-def get_settings(db: Session = Depends(get_db)):
-    db_settings = db.query(DBSetting).first()
+def get_settings(session: Session = Depends(db.get_db)):
+    db_settings = session.query(DBSetting).first()
     if not db_settings:
         db_settings = DBSetting(id=1)
-        db.add(db_settings)
-        db.commit()
-        db.refresh(db_settings)
+        session.add(db_settings)
+        session.commit()
+        session.refresh(db_settings)
         
     return Settings.model_validate(db_settings)

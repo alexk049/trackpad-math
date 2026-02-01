@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
 
-from trackpad_math.db import get_db, Drawing
+from trackpad_math.db import db, Drawing
 from trackpad_math import state
 
 router = APIRouter()
@@ -17,9 +17,9 @@ class TeachRequest(BaseModel):
     points: Optional[list] = None # If None, use last recorded points
 
 @router.get("/api/labels")
-def get_labels(db: Session = Depends(get_db)):
+def get_labels(session: Session = Depends(db.get_db)):
     """Get all unique labels and their counts, with descriptions."""
-    results = db.query(Drawing.label, func.count(Drawing.id)).group_by(Drawing.label).all()
+    results = session.query(Drawing.label, func.count(Drawing.id)).group_by(Drawing.label).all()
     data = {r[0]: r[1] for r in results}
     
     # Get all trainable symbols from the categorized list
@@ -65,32 +65,32 @@ def get_labels(db: Session = Depends(get_db)):
     return final_list
 
 @router.get("/api/drawings")
-def get_drawings(label: Optional[str] = None, limit: int = 100, db: Session = Depends(get_db)):
+def get_drawings(label: Optional[str] = None, limit: int = 100, session: Session = Depends(db.get_db)):
     """Get list of drawings, optionally filtered by label."""
-    q = db.query(Drawing)
+    q = session.query(Drawing)
     if label:
         q = q.filter(Drawing.label == label)
     drawings = q.order_by(Drawing.timestamp.desc()).limit(limit).all()
     return drawings
 
 @router.get("/api/drawings/{id}")
-def get_drawing(id: UUID, db: Session = Depends(get_db)):
-    d = db.query(Drawing).filter(Drawing.id == id).first()
+def get_drawing(id: UUID, session: Session = Depends(db.get_db)):
+    d = session.query(Drawing).filter(Drawing.id == id).first()
     if not d:
         raise HTTPException(status_code=404, detail="Drawing not found")
     return d
 
 @router.delete("/api/drawings/{id}")
-def delete_drawing(id: UUID, db: Session = Depends(get_db)):
-    d = db.query(Drawing).filter(Drawing.id == id).first()
+def delete_drawing(id: UUID, session: Session = Depends(db.get_db)):
+    d = session.query(Drawing).filter(Drawing.id == id).first()
     if not d:
         raise HTTPException(status_code=404, detail="Drawing not found")
-    db.delete(d)
-    db.commit()
+    session.delete(d)
+    session.commit()
     return {"status": "deleted"}
 
 @router.post("/api/teach")
-async def teach_symbol(req: TeachRequest, db: Session = Depends(get_db)):
+async def teach_symbol(req: TeachRequest, session: Session = Depends(db.get_db)):
     """
     Save points as a specific label and incrementally update the model.
     """
@@ -103,8 +103,8 @@ async def teach_symbol(req: TeachRequest, db: Session = Depends(get_db)):
         label=req.label,
         points=points_to_save
     )
-    db.add(new_drawing)
-    db.commit()
+    session.add(new_drawing)
+    session.commit()
     
     # Incrementally update the model with the new example
     try:
@@ -125,9 +125,9 @@ def retrain_model():
 # --- Import / Export ---
 
 @router.get("/api/data/export")
-def export_data(db: Session = Depends(get_db)):
+def export_data(session: Session = Depends(db.get_db)):
     """Export all training data as JSON."""
-    drawings = db.query(Drawing).all()
+    drawings = session.query(Drawing).all()
     data = []
     for d in drawings:
         data.append({
@@ -142,7 +142,7 @@ def export_data(db: Session = Depends(get_db)):
     )
 
 @router.post("/api/data/import")
-async def import_data(file: UploadFile, db: Session = Depends(get_db)):
+async def import_data(file: UploadFile, session: Session = Depends(db.get_db)):
     """Import training data from JSON file."""
     try:
         content = await file.read()
@@ -164,10 +164,10 @@ async def import_data(file: UploadFile, db: Session = Depends(get_db)):
             points=item["points"]
             # Ignore timestamp on import, let it be now
         )
-        db.add(d)
+        session.add(d)
         count += 1
         
-    db.commit()
+    session.commit()
 
     # Retrain model with all imported data
     try:
@@ -179,15 +179,15 @@ async def import_data(file: UploadFile, db: Session = Depends(get_db)):
     return {"status": "imported", "count": count}
 
 @router.delete("/api/data/reset")
-def reset_data(db: Session = Depends(get_db)):
+def reset_data(session: Session = Depends(db.get_db)):
     """Delete ALL training data and reset classifier."""
     try:
-        db.query(Drawing).delete()
-        db.commit()
+        session.query(Drawing).delete()
+        session.commit()
         state.classifier.reset()
         return {"status": "reset"}
     except Exception as e:
-        db.rollback()
+        session.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 

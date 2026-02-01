@@ -2,7 +2,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from trackpad_math import state
-from trackpad_math.db import init_db, seed_db_if_empty
+from trackpad_math.db import db
 from trackpad_math.routers import websocket, data, settings
 from contextlib import asynccontextmanager
 import threading
@@ -10,8 +10,8 @@ import threading
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize DB
-    init_db()
-    seed_db_if_empty()
+    db.init_db()
+    db.seed_if_empty()
 
     logger = logging.getLogger("app")
 

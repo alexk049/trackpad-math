@@ -41,7 +41,7 @@ def init_config():
     logger = logging.getLogger("app")
 
     # --- App Data Directory ---
-    app_name = "trackpad-math"
+    app_identifier = "io.github.alexk049.trackpad-math"
     home = pathlib.Path.home()
 
     # Determine App Data Directory (Cross-Platform)
@@ -52,18 +52,21 @@ def init_config():
     else:
         logger.info(f"Creating app dir")
         if sys.platform == "win32":
-            app_data_dir = pathlib.Path(os.environ.get("APPDATA", home / "AppData" / "Local")) / app_name
+            # Windows: AppData/Local/Trackpad Math
+            app_data_dir = pathlib.Path(os.environ.get("LOCALAPPDATA", home / "AppData" / "Local")) / app_identifier
         elif sys.platform == "darwin":
-            app_data_dir = home / "Library" / "Application Support" / app_name
+            # macOS: Library/Application Support/Trackpad Math
+            app_data_dir = home / "Library" / "Application Support" / app_identifier
         else:
-            # Linux and others
-            app_data_dir = home / ".local" / "share" / app_name
+            # Linux: .local/share/trackpad-math
+            app_data_dir = home / ".local" / "share" / app_identifier
+            
         app_data_dir.mkdir(parents=True, exist_ok=True)
         os.environ["APP_DATA_DIR"] = str(app_data_dir)
 
     # --- Database ---
     if not os.environ.get("DATABASE_URL"):
-        db_path = str(os.environ.get("APP_DATA_DIR")) + "/app.db"
+        db_path = app_data_dir / "app.db"
         os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
 
     setup_crash_logger(app_data_dir)

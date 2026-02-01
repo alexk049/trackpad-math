@@ -6,6 +6,8 @@ import asyncio
 import multiprocessing
 import argparse
 import uvicorn
+from trackpad_math import config, state
+from trackpad_math.db import db
 
 def listen_stdin(on_stop):
     """Listens for a shutdown command on stdin."""
@@ -95,12 +97,13 @@ def main():
     # PyInstaller freeze support for multiprocessing
     multiprocessing.freeze_support()
 
-    # Import config and state to initialize them
-    from trackpad_math import config, state
-    
     # Initialize config first to set up environment variables and logging
     config.init_config()
-    # Initialize state (needs APP_DATA_DIR from config)
+
+    # Initialize Database and State
+    db.connect()
+    db.init_db()
+    db.seed_if_empty()
     state.init_state()
 
     logger = logging.getLogger("app")
