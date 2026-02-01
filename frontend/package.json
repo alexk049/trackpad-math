@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri:dev": "tauri dev",
+    "tauri:release": "tauri dev --release"
   },
   "dependencies": {
     "@mantine/core": "^8.3.10",

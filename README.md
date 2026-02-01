@@ -90,14 +90,14 @@ sudo apt-get install libwebkit2gtk-4.1-dev build-essential curl wget file libssl
    cd frontend
    npm install
    # Launch the Tauri development environment
-   npm run tauri dev
+   npm run tauri:dev
    ```
 
 **Note**: 
    If you want to run sidecar in development, compile the python backend and move it to the correct location as shown below. Then run the following commands:
    ```bash
    cd frontend
-   npm run tauri dev -- --release
+   npm run tauri:release
    ```
 
 ---
