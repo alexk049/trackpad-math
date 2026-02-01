@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-  trackpad_math::run();
+  trackpad_math_lib::run();
 }
