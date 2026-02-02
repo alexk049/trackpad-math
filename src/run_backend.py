@@ -27,13 +27,13 @@ def listen_stdin(on_stop):
 
 async def run_server(app, host="127.0.0.1", port=0, dev_mode=False):
     logger = logging.getLogger("app")
-    stop_event = asyncio.Event()
-    loop = asyncio.get_running_loop()
-    
-    def trigger_stop():
-        loop.call_soon_threadsafe(stop_event.set)
 
     if not dev_mode:
+        stop_event = asyncio.Event()
+        loop = asyncio.get_running_loop()
+        
+        def trigger_stop():
+            loop.call_soon_threadsafe(stop_event.set)
         threading.Thread(target=listen_stdin, args=(trigger_stop,), daemon=True).start()
 
     config = uvicorn.Config(
@@ -90,27 +90,41 @@ async def run_server(app, host="127.0.0.1", port=0, dev_mode=False):
     logger.info("Main thread cleanly exited.")
 
 def main():
-    parser = argparse.ArgumentParser(description="Trackpad Math Backend")
-    parser.add_argument("--dev", action="store_true", help="Run in development mode")
-    args = parser.parse_args()
-
-    # PyInstaller freeze support for multiprocessing
-    multiprocessing.freeze_support()
-
-    # Initialize config first to set up environment variables and logging
-    config.init_config()
-
-    # Initialize Database and State
-    db.connect()
-    db.init_db()
-    db.seed_if_empty()
-    state.init_state()
-
-    logger = logging.getLogger("app")
-    crash_logger = logging.getLogger("app_crash")
-
-    # Import and Run App
     try:
+        parser = argparse.ArgumentParser(description="Trackpad Math Backend")
+        parser.add_argument("--dev", action="store_true", help="Run in development mode")
+        args = parser.parse_args()
+
+        # PyInstaller freeze support for multiprocessing
+        multiprocessing.freeze_support()
+
+        # Initialize config first to set up environment variables and logging
+        config.init_config()
+
+        # Initialize Database and State
+        db.connect()
+        db.init_db()
+        db.seed_if_empty()
+        state.init_state()
+
+        logger = logging.getLogger("app")
+
+        # Train model if not already trained (e.g., after seeding)
+        # Run in a separate thread so we don't block server startup
+        if not state.classifier.is_trained:
+            def train_background():
+                logger.debug("Background: Starting model training.")
+                state.train_model_on_db_data()
+                logger.debug("Background: Model training complete.")
+
+            training_thread = threading.Thread(target=train_background, daemon=True)
+            training_thread.start()
+    
+        # if not state.classifier.load():
+        #     logger.warning("Model not found. Predictions will fail until trained.")
+
+        crash_logger = logging.getLogger("app_crash")
+
         from trackpad_math.app import app
         logger.info(f"FastAPI app imported successfully. Dev mode: {args.dev}")
         
