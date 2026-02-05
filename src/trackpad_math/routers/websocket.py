@@ -1,3 +1,6 @@
+import logging
+from trackpad_math.model import SymbolClassifier
+from trackpad_math.socket_manager import ConnectionManager
 import json
 from typing import Optional
 from pydantic import BaseModel
@@ -17,7 +20,7 @@ class ToggleResponse(BaseModel):
     message: Optional[str] = None
 
 @router.websocket("/ws/record")
-async def websocket_record(websocket: WebSocket, manager: ConnectionManagerInstance):
+async def websocket_record(websocket: WebSocket, manager: ConnectionManagerInstance, classifier: ClassifierInstance):
     await manager.connect(websocket)
     try:
         while True:
@@ -41,7 +44,7 @@ async def websocket_record(websocket: WebSocket, manager: ConnectionManagerInsta
             elif action == 'classify':
                 points = data.get('points')
                 if points:
-                    await process_classification(points)
+                    await process_classification(points, manager, classifier)
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
@@ -54,7 +57,9 @@ def reset_cursor(x, y):
     except Exception as e:
         print(f"Warning: Could not reset cursor: {e}")
 
-async def process_classification(points, manager: ConnectionManagerInstance, classifier: ClassifierInstance):
+async def process_classification(points, manager: ConnectionManager, classifier: SymbolClassifier):
+    logger = logging.getLogger("app")
+    logger.info("Processing classification")
     if not classifier.is_trained:
         await manager.broadcast({"status": "error", "message": "Model not trained"})
         return
