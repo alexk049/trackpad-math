@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from trackpad_math.db import Drawing
 from trackpad_math.state import DBSession, ClassifierInstance
+from trackpad_math.model import SymbolClassifier
 
 router = APIRouter()
 
@@ -117,9 +118,8 @@ async def teach_symbol(req: TeachRequest, session: DBSession, classifier: Classi
     
     return {"status": "saved", "id": str(new_drawing.id), "model_updated": model_updated}
 
-@router.post("/api/retrain")
-def retrain_model(session: DBSession, classifier: ClassifierInstance):
-    """Force model reload/retrain from DB."""
+def train_model_from_db(session: Session, classifier: SymbolClassifier):
+    """Business logic to train model from all drawings in DB."""
     logger = logging.getLogger("app")
     drawings = session.query(Drawing).all()
     if not drawings:
@@ -132,6 +132,11 @@ def retrain_model(session: DBSession, classifier: ClassifierInstance):
     logger.debug(f"Training model with {len(drawings)} examples.")
     classifier.train(points_list, labels_list)
     return True
+
+@router.post("/api/retrain")
+def retrain_model(session: DBSession, classifier: ClassifierInstance):
+    """Force model reload/retrain from DB."""
+    return train_model_from_db(session, classifier)
 
 @router.get("/api/data/export")
 def export_data(session: DBSession):
@@ -178,10 +183,9 @@ async def import_data(file: UploadFile, session: DBSession, classifier: Classifi
         
     session.flush()
 
-    # Retrain model with all imported data
+    # Retrain model with all data in DB (including imported)
     try:
-        classifier.train([item["points"] for item in data if "points" in item and "label" in item], 
-                         [item["label"] for item in data if "points" in item and "label" in item])
+        train_model_from_db(session, classifier)
     except Exception as e:
         print(f"Warning: Could not retrain model after import: {e}")
     
