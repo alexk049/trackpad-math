@@ -86,7 +86,7 @@ async def run_server(app, host="127.0.0.1", port=0, dev_mode=False):
         if not stop_task.done():
             stop_task.cancel()
 
-    logger.info("Main thread cleanly exited.")
+    logger.info("Main thread exited.")
 
 def main():
     try:
