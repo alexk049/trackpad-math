@@ -44,7 +44,7 @@ fn get_backend_port(_state: tauri::State<'_, SidecarState>) -> Result<u16, Strin
 
         let rx = _state.port_rx.lock().unwrap().take();
         if let Some(rx) = rx {
-            match rx.recv_timeout(std::time::Duration::from_secs(300)) {
+            match rx.recv_timeout(std::time::Duration::from_secs(600)) {
                 Ok(port) => {
                     *cached = Some(port);
                     Ok(port)
@@ -55,6 +55,19 @@ fn get_backend_port(_state: tauri::State<'_, SidecarState>) -> Result<u16, Strin
             Err("Port receiver already consumed".to_string())
         }
     }
+}
+
+#[tauri::command]
+async fn close_splashscreen(window: tauri::Window) {
+  // Close splashscreen
+  if let Some(splashscreen) = window.get_webview_window("splashscreen") {
+    splashscreen.close().unwrap();
+  }
+  // Show main window
+  if let Some(main_window) = window.get_webview_window("main") {
+    main_window.show().unwrap();
+    main_window.set_focus().unwrap();
+  }
 }
 
 // --- SIDECAR LOGIC (Production Only) ---
@@ -143,7 +156,7 @@ pub fn run() {
             .build())
         .plugin(tauri_plugin_shell::init())
         .manage(SidecarState::default())
-        .invoke_handler(tauri::generate_handler![get_backend_port])
+        .invoke_handler(tauri::generate_handler![get_backend_port, close_splashscreen])
         .setup(|app| {
             let app_data_dir = app.path().app_local_data_dir()?;
             std::fs::create_dir_all(&app_data_dir)?;

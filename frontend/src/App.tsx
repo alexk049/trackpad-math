@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+
 import MainLayout from './components/MainLayout';
 import EditorPage from './pages/EditorPage';
 import OptionsPage from './pages/Options';
@@ -85,7 +85,7 @@ function App() {
   };
 
   useEffect(() => {
-    getCurrentWindow().show().catch(e => error("Failed to show window: " + e));
+    invoke('close_splashscreen');
     initApp();
   }, []);
 
