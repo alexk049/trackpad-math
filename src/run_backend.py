@@ -111,17 +111,10 @@ def main():
 
         # Train model if not already trained (e.g., after seeding)
         # Run in a separate thread so we don't block server startup
-        if not state.classifier.is_trained:
-            def train_background():
-                logger.debug("Background: Starting model training.")
-                state.train_model_on_db_data()
-                logger.debug("Background: Model training complete.")
-
-            training_thread = threading.Thread(target=train_background, daemon=True)
-            training_thread.start()
-    
-        # if not state.classifier.load():
-        #     logger.warning("Model not found. Predictions will fail until trained.")
+        if not state.classifier.load():
+            logger.info("Model not found. Training model.")
+            if not state.train_model_on_db_data():
+                logger.error("Failed to train model.")
 
         crash_logger = logging.getLogger("app_crash")
 
@@ -141,4 +134,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -1,6 +1,11 @@
 import os
+import pickle
 from typing import List, Tuple, Any, Dict, Optional, Union
-
+import numpy as np
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
+from scipy.spatial.distance import euclidean
+from fastdtw import fastdtw
 from trackpad_math.processing import extract_features, normalize, resample_drawing, segment_strokes
 
 Strokes = List[List[Dict[str, float]]]
@@ -16,10 +21,8 @@ class SymbolClassifier:
         
     def _init_model(self):
         if self.model_type == "knn":
-            from sklearn.neighbors import KNeighborsClassifier
             self.model = KNeighborsClassifier(n_neighbors=3)
         elif self.model_type == "rf":
-            from sklearn.ensemble import RandomForestClassifier
             self.model = RandomForestClassifier(n_estimators=100)
         elif self.model_type == "dtw":
             # DTW is lazy, "training" is just storing templates
@@ -31,7 +34,6 @@ class SymbolClassifier:
         """
         drawings: List of flat points for each example.
         """
-        import numpy as np
         if self.model is None:
             self._init_model()
         
@@ -52,7 +54,6 @@ class SymbolClassifier:
             os.remove(self.model_path)
 
     def _train_sklearn(self, drawings: List[Points], labels: List[str]):
-        import numpy as np
         X = []
         y = []
         for d, label in zip(drawings, labels):
@@ -70,7 +71,6 @@ class SymbolClassifier:
         self.model.fit(X, y)
 
     def _train_dtw(self, drawings: List[Points], labels: List[str]):
-        import numpy as np
         # specific preprocessing for DTW: normalize + resample -> keep as sequence of points
         templates = []
         for d in drawings:
@@ -125,9 +125,6 @@ class SymbolClassifier:
         return results
 
     def _predict_dtw(self, points: Points) -> List[Tuple[str, float]]:
-        from scipy.spatial.distance import euclidean
-        from fastdtw import fastdtw
-        import numpy as np
         # Preprocess input same as training
         strokes = segment_strokes(points)
         norm_strokes = normalize(strokes)
@@ -210,8 +207,6 @@ class SymbolClassifier:
         if self.model_type == "knn":
             # For KNN, we need to add to the existing training set.
             # Sklearn's KNN stores data in _fit_X and encoded labels in _y.
-            import numpy as np
-            
             new_features = extract_features(strokes).reshape(1, -1)
             
             if hasattr(self.model, "_fit_X") and self.model._fit_X is not None and hasattr(self.model, "_y"):
@@ -235,12 +230,10 @@ class SymbolClassifier:
             self.save()
 
     def save(self):
-        import pickle
         with open(self.model_path, 'wb') as f:
             pickle.dump(self.model, f)
             
     def load(self) -> bool:
-        import pickle
         if os.path.exists(self.model_path):
             with open(self.model_path, 'rb') as f:
                 self.model = pickle.load(f)
