@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import MainLayout from './components/MainLayout';
 import EditorPage from './pages/EditorPage';
 import OptionsPage from './pages/Options';
@@ -84,18 +85,8 @@ function App() {
   };
 
   useEffect(() => {
-    let mounted = true;
-
-    // Delay slightly to ensure loading page renders before blocking call
-    setTimeout(() => {
-      if (mounted) {
-        initApp();
-      }
-    }, 100);
-
-    return () => {
-      mounted = false;
-    };
+    getCurrentWindow().show().catch(e => error("Failed to show window: " + e));
+    initApp();
   }, []);
 
   if (!isReady) {
