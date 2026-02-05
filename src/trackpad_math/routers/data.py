@@ -1,3 +1,4 @@
+import logging
 import json
 from uuid import UUID
 from typing import Optional
@@ -7,8 +8,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
 
-from trackpad_math.db import db, Drawing
-from trackpad_math import state
+from trackpad_math.db import Drawing
+from trackpad_math.state import DBSession, ClassifierInstance
 
 router = APIRouter()
 
@@ -17,7 +18,7 @@ class TeachRequest(BaseModel):
     points: Optional[list] = None # If None, use last recorded points
 
 @router.get("/api/labels")
-def get_labels(session: Session = Depends(db.get_db)):
+def get_labels(session: DBSession):
     """Get all unique labels and their counts, with descriptions."""
     results = session.query(Drawing.label, func.count(Drawing.id)).group_by(Drawing.label).all()
     data = {r[0]: r[1] for r in results}
@@ -65,7 +66,7 @@ def get_labels(session: Session = Depends(db.get_db)):
     return final_list
 
 @router.get("/api/drawings")
-def get_drawings(label: Optional[str] = None, limit: int = 100, session: Session = Depends(db.get_db)):
+def get_drawings(session: DBSession, label: Optional[str] = None, limit: int = 100):
     """Get list of drawings, optionally filtered by label."""
     q = session.query(Drawing)
     if label:
@@ -74,23 +75,23 @@ def get_drawings(label: Optional[str] = None, limit: int = 100, session: Session
     return drawings
 
 @router.get("/api/drawings/{id}")
-def get_drawing(id: UUID, session: Session = Depends(db.get_db)):
+def get_drawing(id: UUID, session: DBSession):
     d = session.query(Drawing).filter(Drawing.id == id).first()
     if not d:
         raise HTTPException(status_code=404, detail="Drawing not found")
     return d
 
 @router.delete("/api/drawings/{id}")
-def delete_drawing(id: UUID, session: Session = Depends(db.get_db)):
+def delete_drawing(id: UUID, session: DBSession):
     d = session.query(Drawing).filter(Drawing.id == id).first()
     if not d:
         raise HTTPException(status_code=404, detail="Drawing not found")
     session.delete(d)
-    session.commit()
+    session.flush()
     return {"status": "deleted"}
 
 @router.post("/api/teach")
-async def teach_symbol(req: TeachRequest, session: Session = Depends(db.get_db)):
+async def teach_symbol(req: TeachRequest, session: DBSession, classifier: ClassifierInstance):
     """
     Save points as a specific label and incrementally update the model.
     """
@@ -104,11 +105,11 @@ async def teach_symbol(req: TeachRequest, session: Session = Depends(db.get_db))
         points=points_to_save
     )
     session.add(new_drawing)
-    session.commit()
+    session.flush()
     
     # Incrementally update the model with the new example
     try:
-        state.classifier.add_example(points_to_save, req.label)
+        classifier.add_example(points_to_save, req.label)
         model_updated = True
     except Exception as e:
         print(f"Warning: Could not update model incrementally: {e}")
@@ -117,15 +118,23 @@ async def teach_symbol(req: TeachRequest, session: Session = Depends(db.get_db))
     return {"status": "saved", "id": str(new_drawing.id), "model_updated": model_updated}
 
 @router.post("/api/retrain")
-def retrain_model():
+def retrain_model(session: DBSession, classifier: ClassifierInstance):
     """Force model reload/retrain from DB."""
-    # Not implemented fully yet
-    return {"status": "not_implemented_yet"}
-
-# --- Import / Export ---
+    logger = logging.getLogger("app")
+    drawings = session.query(Drawing).all()
+    if not drawings:
+        logger.warning("No drawings found in DB for training.")
+        return False
+        
+    points_list = [d.points for d in drawings]
+    labels_list = [d.label for d in drawings]
+    
+    logger.debug(f"Training model with {len(drawings)} examples.")
+    classifier.train(points_list, labels_list)
+    return True
 
 @router.get("/api/data/export")
-def export_data(session: Session = Depends(db.get_db)):
+def export_data(session: DBSession):
     """Export all training data as JSON."""
     drawings = session.query(Drawing).all()
     data = []
@@ -142,7 +151,7 @@ def export_data(session: Session = Depends(db.get_db)):
     )
 
 @router.post("/api/data/import")
-async def import_data(file: UploadFile, session: Session = Depends(db.get_db)):
+async def import_data(file: UploadFile, session: DBSession, classifier: ClassifierInstance):
     """Import training data from JSON file."""
     try:
         content = await file.read()
@@ -167,11 +176,11 @@ async def import_data(file: UploadFile, session: Session = Depends(db.get_db)):
         session.add(d)
         count += 1
         
-    session.commit()
+    session.flush()
 
     # Retrain model with all imported data
     try:
-        state.classifier.train([item["points"] for item in data if "points" in item and "label" in item], 
+        classifier.train([item["points"] for item in data if "points" in item and "label" in item], 
                          [item["label"] for item in data if "points" in item and "label" in item])
     except Exception as e:
         print(f"Warning: Could not retrain model after import: {e}")
@@ -179,12 +188,12 @@ async def import_data(file: UploadFile, session: Session = Depends(db.get_db)):
     return {"status": "imported", "count": count}
 
 @router.delete("/api/data/reset")
-def reset_data(session: Session = Depends(db.get_db)):
+def reset_data(session: DBSession, classifier: ClassifierInstance):
     """Delete ALL training data and reset classifier."""
     try:
         session.query(Drawing).delete()
-        session.commit()
-        state.classifier.reset()
+        session.flush()
+        classifier.reset()
         return {"status": "reset"}
     except Exception as e:
         session.rollback()

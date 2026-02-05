@@ -7,7 +7,6 @@ import multiprocessing
 import argparse
 import uvicorn
 from trackpad_math import config, state
-from trackpad_math.db import db
 
 def listen_stdin(on_stop):
     """Listens for a shutdown command on stdin."""
@@ -101,23 +100,10 @@ def main():
         # Initialize config first to set up environment variables and logging
         config.init_config()
 
-        # Initialize Database and State
-        db.connect()
-        db.init_db()
-        db.seed_if_empty()
-        state.init_state()
-
         logger = logging.getLogger("app")
-
-        # Train model if not already trained (e.g., after seeding)
-        # Run in a separate thread so we don't block server startup
-        if not state.classifier.load():
-            logger.info("Model not found. Training model.")
-            if not state.train_model_on_db_data():
-                logger.error("Failed to train model.")
-
         crash_logger = logging.getLogger("app_crash")
 
+        # Import app after config to ensure environment variables are set and logging is configured
         from trackpad_math.app import app
         logger.info(f"FastAPI app imported successfully. Dev mode: {args.dev}")
         

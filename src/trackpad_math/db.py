@@ -62,11 +62,6 @@ class Database:
         finally:
             session.close()
 
-    def get_db(self):
-        """Dependency for FastAPI. Returns a generator."""
-        with self.session_scope() as session:
-            yield session
-
     def init_db(self):
         """Creates tables if they don't exist."""
         self.connect()
@@ -108,6 +103,3 @@ class Database:
             print(f"Seeded {len(drawings_data)} drawings.")
         finally:
             session.close()
-
-# Global database instance
-db = Database()

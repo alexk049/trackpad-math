@@ -1,9 +1,12 @@
+from trackpad_math.model import SymbolClassifier
+import os
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from trackpad_math import state
-from trackpad_math.db import db
+from trackpad_math.db import Database
 from trackpad_math.routers import websocket, data, settings
+from trackpad_math.socket_manager import ConnectionManager
 from contextlib import asynccontextmanager
 import threading
 
@@ -11,9 +14,24 @@ import threading
 async def lifespan(app: FastAPI):
     logger = logging.getLogger("app")
 
-    # We'll load it in app.py startup or here, but here is safer for instantiation
-    if not state.classifier.load():
-        logger.warning("Model not found. Predictions will fail until trained.")
+    db = Database()
+    db.init_db()
+    app.state.db = db
+
+    app_data_dir = os.environ.get("APP_DATA_DIR")
+    if not app_data_dir:
+        raise RuntimeError("APP_DATA_DIR environment variable not set. Did you call init_config()?")
+    base_model_path = os.path.join(app_data_dir, "model")
+    app.state.classifier = SymbolClassifier(model_type="knn", base_path=base_model_path)
+    
+    # Train model if not already trained (e.g., after seeding)
+    if not app.state.classifier.load():
+        logger.info("Model not found. Training model.")
+        db.seed_if_empty()
+        if not data.retrain_model(app.state.db, app.state.classifier):
+            logger.error("Failed to train model.")
+
+    app.state.socket_manager = ConnectionManager()
 
     yield
     

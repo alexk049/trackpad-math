@@ -47,10 +47,10 @@ def init_config():
     # Determine App Data Directory (Cross-Platform)
     # Use env var if set (e.g. by Tauri), otherwise detect
     if os.environ.get("APP_DATA_DIR"):
-        logger.info(f"Using dir from tauri")
+        logger.info(f"Using app data dir set by tauri")
         app_data_dir = pathlib.Path(os.environ["APP_DATA_DIR"])
     else:
-        logger.info(f"Creating app dir")
+        logger.info(f"No app data dir set by tauri, using default")
         if sys.platform == "win32":
             # Windows: AppData/Local/Trackpad Math
             app_data_dir = pathlib.Path(os.environ.get("LOCALAPPDATA", home / "AppData" / "Local")) / app_identifier

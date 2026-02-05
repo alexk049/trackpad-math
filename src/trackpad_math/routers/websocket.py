@@ -4,8 +4,7 @@ from pydantic import BaseModel
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from trackpad_math import state
-
-from trackpad_math.socket_manager import manager
+from trackpad_math.state import ClassifierInstance, ConnectionManagerInstance
 
 router = APIRouter()
 
@@ -18,7 +17,7 @@ class ToggleResponse(BaseModel):
     message: Optional[str] = None
 
 @router.websocket("/ws/record")
-async def websocket_record(websocket: WebSocket):
+async def websocket_record(websocket: WebSocket, manager: ConnectionManagerInstance):
     await manager.connect(websocket)
     try:
         while True:
@@ -55,13 +54,13 @@ def reset_cursor(x, y):
     except Exception as e:
         print(f"Warning: Could not reset cursor: {e}")
 
-async def process_classification(points):
-    if not state.classifier.is_trained:
+async def process_classification(points, manager: ConnectionManagerInstance, classifier: ClassifierInstance):
+    if not classifier.is_trained:
         await manager.broadcast({"status": "error", "message": "Model not trained"})
         return
 
     # Run heavy prediction in threadpool
-    predictions = await run_in_threadpool(state.classifier.predict, points)
+    predictions = await run_in_threadpool(classifier.predict, points)
     
     if not predictions:
         await manager.broadcast({"status": "idle", "message": "No prediction"})

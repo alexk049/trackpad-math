@@ -1,10 +1,11 @@
-import os
-import logging
+from sqlalchemy.orm import Session
+from typing import Annotated, Generator
+from fastapi import Request, Depends
 from pydantic import BaseModel, ConfigDict
+from trackpad_math.db import Database
 from trackpad_math.model import SymbolClassifier
-from trackpad_math.db import db, Drawing
+from trackpad_math.socket_manager import ConnectionManager
 
-# --- Models ---
 class Settings(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     
@@ -13,39 +14,17 @@ class Settings(BaseModel):
     equation_scroll_x_sensitivity: int = 20
     equation_scroll_y_sensitivity: int = 20
 
-# --- Global Components ---
-
-# Classifier Instance (initialized via init_state)
-classifier: SymbolClassifier = None
-
-def init_state():
-    """Initializes global application state."""
-    global classifier
-    
-    app_data_dir = os.environ.get("APP_DATA_DIR")
-    if not app_data_dir:
-        raise RuntimeError("APP_DATA_DIR environment variable not set. Did you call init_config()?")
-        
-    base_model_path = os.path.join(app_data_dir, "model")
-    classifier = SymbolClassifier(model_type="knn", base_path=base_model_path)
-
-    logger = logging.getLogger("app")
-    logger.info("state loaded")
-
-def train_model_on_db_data():
-    """Fetches all drawings from DB and trains the classifier."""
+def get_db_session(request: Request) -> Generator:
+    db: Database = request.app.state.db
     with db.session_scope() as session:
-        logger = logging.getLogger("app")
-        drawings = session.query(Drawing).all()
-        if not drawings:
-            logger.warning("No drawings found in DB for training.")
-            return False
-        
-        points_list = [d.points for d in drawings]
-        labels_list = [d.label for d in drawings]
-        
-        logger.debug(f"Training model with {len(drawings)} examples.")
-        classifier.train(points_list, labels_list)
-        return True
+        yield session
 
+def get_classifier(request: Request) -> SymbolClassifier:
+    return request.app.state.classifier
 
+def get_connection_manager(request: Request) -> ConnectionManager:
+    return request.app.state.socket_manager
+
+DBSession = Annotated[Session, Depends(get_db_session)]
+ClassifierInstance = Annotated[SymbolClassifier, Depends(get_classifier)]
+ConnectionManagerInstance = Annotated[ConnectionManager, Depends(get_connection_manager)]

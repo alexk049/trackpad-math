@@ -1,20 +1,18 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from trackpad_math import state
-from trackpad_math.state import Settings
-from trackpad_math.db import db, DBSetting
+from fastapi import APIRouter
+from trackpad_math.state import Settings, DBSession, ClassifierInstance
+from trackpad_math.db import DBSetting
 
 router = APIRouter()
 
 @router.get("/api/status")
-def get_status():
+def get_status(classifier: ClassifierInstance):
     return {
-        "model_loaded": state.classifier.is_trained,
-        "model_type": state.classifier.model_type,
+        "model_loaded": classifier.is_trained,
+        "model_type": classifier.model_type,
     }
 
 @router.post("/api/settings")
-def update_settings(s: Settings, session: Session = Depends(db.get_db)):
+def update_settings(s: Settings, session: DBSession):
     db_settings = session.query(DBSetting).first()
     if not db_settings:
         db_settings = DBSetting(id=1)
@@ -31,12 +29,12 @@ def update_settings(s: Settings, session: Session = Depends(db.get_db)):
     return {"status": "updated", "settings": Settings.model_validate(db_settings)}
 
 @router.get("/api/settings")
-def get_settings(session: Session = Depends(db.get_db)):
+def get_settings(session: DBSession):
     db_settings = session.query(DBSetting).first()
     if not db_settings:
         db_settings = DBSetting(id=1)
         session.add(db_settings)
-        session.commit()
+        session.flush()
         session.refresh(db_settings)
         
     return Settings.model_validate(db_settings)
