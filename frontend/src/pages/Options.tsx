@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useMantineColorScheme, Container, Button, FileButton } from '@mantine/core';
 import { IconUpload, IconDownload, IconTrash } from '@tabler/icons-react';
 import { API_BASE_URL } from '../config';
+import { invoke } from '@tauri-apps/api/core';
 
 export default function OptionsPage() {
     const [settings, setSettings] = useState({
@@ -10,10 +11,14 @@ export default function OptionsPage() {
         equation_scroll_x_sensitivity: 20,
         equation_scroll_y_sensitivity: 20
     });
+    const [desktopSettings, setDesktopSettings] = useState({
+        minimizeToTray: true,
+    });
     const { colorScheme, setColorScheme } = useMantineColorScheme();
 
     useEffect(() => {
         fetch(`${API_BASE_URL()}/api/settings`).then((res) => res.json()).then(setSettings);
+        invoke('get_config').then((res: any) => setDesktopSettings(res));
     }, []);
 
     const update = async (newSettings: any) => {
@@ -24,6 +29,12 @@ export default function OptionsPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(s),
         });
+    };
+
+    const updateDesktop = async (newSettings: any) => {
+        const s = { ...desktopSettings, ...newSettings };
+        setDesktopSettings(s);
+        await invoke('set_config', { config: s });
     };
 
     return (
@@ -43,6 +54,19 @@ export default function OptionsPage() {
                                 { label: 'Dark', value: 'dark' },
                                 { label: 'Auto', value: 'auto' },
                             ]}
+                        />
+                    </Group>
+                </Card>
+
+                <Card withBorder>
+                    <Group justify="space-between">
+                        <div>
+                            <Text fw={500}>Minimize to Tray</Text>
+                            <Text size="sm" c="dimmed">Keep the app running in the background when closed</Text>
+                        </div>
+                        <Switch
+                            checked={desktopSettings.minimizeToTray}
+                            onChange={(e) => updateDesktop({ minimizeToTray: e.currentTarget.checked })}
                         />
                     </Group>
                 </Card>

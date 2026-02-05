@@ -1,8 +1,32 @@
+use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::Manager;
+use tauri::menu::{MenuBuilder, MenuItemBuilder};
+use tauri::tray::{TrayIconBuilder, TrayIconEvent};
 use tauri_plugin_shell::process::CommandChild;
 #[cfg(not(debug_assertions))]
 use tauri_plugin_shell::ShellExt;
+use serde::{Deserialize, Serialize};
+
+// --- CONFIG MANAGEMENT ---
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct AppConfig {
+    pub minimize_to_tray: bool,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            minimize_to_tray: true,
+        }
+    }
+}
+
+pub struct ConfigState {
+    pub config: Mutex<AppConfig>,
+}
 
 // --- STATE MANAGEMENT ---
 
@@ -11,6 +35,7 @@ pub struct SidecarState {
     pub exit_rx: Mutex<Option<std::sync::mpsc::Receiver<()>>>,
     pub port_rx: Mutex<Option<std::sync::mpsc::Receiver<u16>>>,
     pub port_value: Mutex<Option<u16>>,
+    pub app_data_dir: Mutex<Option<PathBuf>>,
 }
 
 impl Default for SidecarState {
@@ -20,6 +45,7 @@ impl Default for SidecarState {
             exit_rx: Mutex::new(None),
             port_rx: Mutex::new(None),
             port_value: Mutex::new(None),
+            app_data_dir: Mutex::new(None),
         }
     }
 }
@@ -55,6 +81,26 @@ fn get_backend_port(_state: tauri::State<'_, SidecarState>) -> Result<u16, Strin
             Err("Port receiver already consumed".to_string())
         }
     }
+}
+
+#[tauri::command]
+fn get_config(state: tauri::State<'_, ConfigState>) -> AppConfig {
+    state.config.lock().unwrap().clone()
+}
+
+#[tauri::command]
+fn set_config(state: tauri::State<'_, ConfigState>, sidecar_state: tauri::State<'_, SidecarState>, config: AppConfig) -> Result<(), String> {
+    *state.config.lock().unwrap() = config.clone();
+    
+    // Save to disk
+    let app_data_dir = sidecar_state.app_data_dir.lock().unwrap().clone()
+        .ok_or_else(|| "App data directory not initialized".to_string())?;
+    
+    let config_path = app_data_dir.join("settings.json");
+    let config_json = serde_json::to_string(&config).map_err(|e| e.to_string())?;
+    std::fs::write(config_path, config_json).map_err(|e| e.to_string())?;
+    
+    Ok(())
 }
 
 #[tauri::command]
@@ -156,16 +202,84 @@ pub fn run() {
             .build())
         .plugin(tauri_plugin_shell::init())
         .manage(SidecarState::default())
-        .invoke_handler(tauri::generate_handler![get_backend_port, close_splashscreen])
+        .manage(ConfigState { config: Mutex::new(AppConfig::default()) })
+        .invoke_handler(tauri::generate_handler![get_backend_port, close_splashscreen, get_config, set_config])
         .setup(|app| {
             let app_data_dir = app.path().app_local_data_dir()?;
             std::fs::create_dir_all(&app_data_dir)?;
             std::env::set_var("APP_DATA_DIR", &app_data_dir);
 
+            // Store app_data_dir in state
+            let sidecar_state = app.state::<SidecarState>();
+            *sidecar_state.app_data_dir.lock().unwrap() = Some(app_data_dir.clone());
+
+            // Load config
+            let config_path = app_data_dir.join("settings.json");
+            let config = if config_path.exists() {
+                let content = std::fs::read_to_string(config_path)?;
+                serde_json::from_str(&content).unwrap_or_default()
+            } else {
+                AppConfig::default()
+            };
+            let config_state = app.state::<ConfigState>();
+            *config_state.config.lock().unwrap() = config.clone();
+
+            // Tray setup
+            let quit_i = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
+            let show_i = MenuItemBuilder::with_id("show", "Show").build(app)?;
+            let menu = MenuBuilder::new(app).items(&[&show_i, &quit_i]).build()?;
+
+            let _tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(move |app, event| match event.id.as_ref() {
+                    "quit" => {
+                        app.exit(0);
+                    }
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    match event {
+                        TrayIconEvent::Click {
+                            button: tauri::tray::MouseButton::Left,
+                            ..
+                        } => {
+                            let app = tray.app_handle();
+                            if let Some(window) = app.get_webview_window("main") {
+                                if !window.is_visible().unwrap_or(false) {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                })
+                .build(app)?;
+
             #[cfg(not(debug_assertions))]
             spawn_production_sidecar(app).map_err(|e| e.to_string())?;
 
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let app = window.app_handle();
+                let config_state = app.state::<ConfigState>();
+                let config = config_state.config.lock().unwrap();
+                
+                if config.minimize_to_tray {
+                    window.hide().unwrap();
+                    api.prevent_close();
+                }
+            }
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
