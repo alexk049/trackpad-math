@@ -1,37 +1,40 @@
-from trackpad_math.model import SymbolClassifier
 import os
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from trackpad_math import state
 from trackpad_math.db import Database
 from trackpad_math.routers import websocket, data, settings
 from trackpad_math.socket_manager import ConnectionManager
+from trackpad_math.model import SymbolClassifier
 from contextlib import asynccontextmanager
-import threading
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger = logging.getLogger("app")
+    try:
+        logger = logging.getLogger("app")
+        logger.debug("Starting lifespan.")
+        db = Database()
+        db.init_db()
+        logger.debug("Database initialized.")
+        app.state.db = db
 
-    db = Database()
-    db.init_db()
-    app.state.db = db
+        app_data_dir = os.environ.get("APP_DATA_DIR")
+        if not app_data_dir:
+            raise RuntimeError("APP_DATA_DIR environment variable not set. Did you call init_config()?")
+        base_model_path = os.path.join(app_data_dir, "model")
+        app.state.classifier = SymbolClassifier(model_type="knn", base_path=base_model_path)
+        if not app.state.classifier.load():
+            logger.debug("Model not found. Training model.")
+            db.seed_if_empty()
+            with db.session_scope() as session:
+                if not data.train_model_from_db(session, app.state.classifier):
+                    logger.error("Failed to train model.")
+        app.state.classifier.warmup()
 
-    app_data_dir = os.environ.get("APP_DATA_DIR")
-    if not app_data_dir:
-        raise RuntimeError("APP_DATA_DIR environment variable not set. Did you call init_config()?")
-    base_model_path = os.path.join(app_data_dir, "model")
-    app.state.classifier = SymbolClassifier(model_type="knn", base_path=base_model_path)
-    
-    # Train model if not already trained (e.g., after seeding)
-    if not app.state.classifier.load():
-        logger.info("Model not found. Training model.")
-        db.seed_if_empty()
-        if not data.retrain_model(app.state.db, app.state.classifier):
-            logger.error("Failed to train model.")
-
-    app.state.socket_manager = ConnectionManager()
+        app.state.socket_manager = ConnectionManager()
+    except Exception as e:
+        logger.error(f"Error in startup: {e}")
+        raise e
 
     yield
     
