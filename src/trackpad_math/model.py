@@ -1,3 +1,4 @@
+import logging
 import os
 import pickle
 from typing import List, Tuple, Any, Dict, Optional, Union
@@ -18,6 +19,7 @@ class SymbolClassifier:
         self.model_path = f"{base_path}_{self.model_type}.pkl"
         self.is_trained = False
         self.model: Any = None
+        self.logger = logging.getLogger("app")
         
     def _init_model(self):
         if self.model_type == "knn":
@@ -234,9 +236,15 @@ class SymbolClassifier:
             pickle.dump(self.model, f)
             
     def load(self) -> bool:
+        self.logger.debug(f"Loading model from {self.model_path}")
         if os.path.exists(self.model_path):
             with open(self.model_path, 'rb') as f:
                 self.model = pickle.load(f)
             self.is_trained = True
             return True
         return False
+    
+    def warmup(self):
+        self.logger.debug("Warming up model.")
+        _ = self.predict([{"x": 0, "y": 0, "t": 0}])
+        self.logger.debug("Model warmed up.")
