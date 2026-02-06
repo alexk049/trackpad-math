@@ -6,6 +6,7 @@ import { MathInput } from '../components/MathInput';
 import { useRecorder, type Point } from '../hooks/useRecorder';
 import { RecordingOverlay } from '../components/RecordingOverlay';
 import { useMantineColorScheme } from '@mantine/core';
+import { warn } from '@tauri-apps/plugin-log';
 
 export interface ClassificationState {
     status: 'idle' | 'classifying' | 'finished' | 'error';
@@ -29,6 +30,14 @@ export default function EditorPage() {
     const lastWheelAxis = useRef<'x' | 'y' | null>(null);
     const [settings, setSettings] = useState<any>(null);
     const [mvkVisible, setMvkVisible] = useState(true);
+    const [symbols, setSymbols] = useState<Record<string, string>[]>([]);
+
+    useEffect(() => {
+        fetch(`${API_BASE_URL()}/api/labels`)
+            .then((res) => res.json())
+            .then((data) => setSymbols(data))
+            .catch((err) => console.error('Error fetching symbols:', err));
+    }, []);
 
     const [mathKeyboardContainer, setMathKeyboardContainer] = useState<HTMLDivElement | null>(null);
     const [notification, setNotification] = useState<{ title: string, message: string, color: string } | null>(null);
@@ -96,21 +105,42 @@ export default function EditorPage() {
     }, [recordedPoints]);
 
     const insertSymbol = (symbol: string) => {
-        if (symbol === '/') {
-            mfRef.current?.executeCommand(['insert', '\\frac{#@}{#?}']);
-        } else if (symbol === 'square root') {
-            mfRef.current?.executeCommand(['insert', '\\sqrt{#@}']);
-        } else if (symbol === 'integral') {
-            mfRef.current?.executeCommand(['insert', '\\int_{#?}^{#?} #@']);
-        } else if (symbol === 'summation') {
-            mfRef.current?.executeCommand(['insert', '\\sum_{#?}^{#?} #@']);
-        } else if (symbol === 'plus minus') {
-            mfRef.current?.executeCommand(['insert', '\\pm']);
-        } else if (symbol === '^') {
-            mfRef.current?.executeCommand(['insert', '^{#?}']);
-        } else {
-            mfRef.current?.executeCommand(['insert', symbol]);
+        // #? = value placeholder
+        // #@ = selection placeholder
+        const symbolLatex = symbols.find(s => s.label === symbol)?.latex;
+        if (!symbolLatex) {
+            setNotification({ title: 'Error', message: 'Unknown symbol', color: 'red' });
+            warn(`Unknown symbol: ${symbol}`);
+            return;
         }
+
+        const singleArgSymbols = ["\\sqrt", "\\sin", "\\cos", "\\tan", "\\log", "\\ln"];
+        const doubleArgSymbols = ["\\frac"];
+        const tripleArgSymbols = ["\\int", "\\sum"]
+
+        let insertLatex = "";
+        if (singleArgSymbols.includes(symbolLatex)) {
+            insertLatex = symbolLatex + '{#?}';
+        } else if (doubleArgSymbols.includes(symbolLatex)) {
+            insertLatex = symbolLatex + '{#?}{#?}';
+        } else if (tripleArgSymbols.includes(symbolLatex)) {
+            insertLatex = symbolLatex + '_{#?}^{#?} #@';
+        } else if (symbolLatex === '[') {
+            insertLatex = '[ #@ ]';
+        } else if (symbolLatex === '(') {
+            insertLatex = '( #@ )';
+        } else if (symbolLatex === '{') {
+            insertLatex = '{ #@ }';
+        } else if (symbolLatex === "^") {
+            insertLatex = '^{#?}';
+        } else if (symbolLatex === "_") {
+            insertLatex = '_{#?}';
+        } else if (symbolLatex === "/") {
+            insertLatex = '\\frac{#?}{#?}';
+        } else {
+            insertLatex = symbolLatex;
+        }
+        mfRef.current?.executeCommand(['insert', insertLatex]);
     };
 
     useEffect(() => {
