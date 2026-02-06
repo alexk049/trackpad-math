@@ -19,7 +19,7 @@ export default function EditorPage() {
     const { colorScheme } = useMantineColorScheme();
     const mfRef = useRef<any>(null);
     const [latex, setLatex] = useState(() => localStorage.getItem('equation_latex') || '');
-    const { isRecording, recordedPoints, toggleRecording, resetRecording, setIsPaused } = useRecorder();
+    const { isRecording, recordedPoints, toggleRecording, resetRecording, isPaused, setIsPaused } = useRecorder();
     const [classificationState, setClassificationState] = useState<ClassificationState>({ status: 'idle' });
     const classificationWs = useRef<WebSocket | null>(null);
     const mostRecentPoints = useRef<Point[] | null>(null);
@@ -292,9 +292,11 @@ export default function EditorPage() {
             />
 
             <Center my="sm" h={60} style={{ textAlign: 'center' }}>
-                {isRecording ?
+                {isPaused ? (
+                    <Text c="yellow" size="sm" fs="italic">Paused</Text>
+                ) : isRecording ? (
                     <Text c="red" size="sm" fs="italic">Recording... (Space to stop)</Text>
-                    :
+                ) : (
                     <Button
                         size="xl"
                         color="blue"
@@ -304,7 +306,7 @@ export default function EditorPage() {
                     >
                         Start Drawing (Space)
                     </Button>
-                }
+                )}
             </Center>
 
             <div id="math-keyboard-container" ref={setMathKeyboardContainer} className={colorScheme === 'dark' ? 'dark-mode' : ''} />
