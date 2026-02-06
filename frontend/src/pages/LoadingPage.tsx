@@ -9,18 +9,16 @@ interface LoadingPageProps {
 
 export default function LoadingPage({ statusMessage, errorMessage, onRetry }: LoadingPageProps) {
     return (
-        <Center h="100vh" style={{ background: 'var(--bg-gradient-start)' }}>
-            <Stack align="center" gap="xl" style={{ maxWidth: 400, width: '90%' }}>
+        <Center h="100vh">
+            <Stack align="center" gap="xs" style={{ maxWidth: 400, width: '90%' }}>
+                <img src="/logo.png" alt="Trackpad Math Logo" style={{ width: 150, height: 150 }} />
                 {!errorMessage ? (
                     <>
-                        <Loader size="xl" color="indigo" type="dots" />
                         <Stack align="center" gap="xs">
-                            <Title order={2} style={{ color: 'var(--text-main)' }}>
-                                Trackpad Math
-                            </Title>
                             <Text c="dimmed" size="sm" ta="center">
                                 {statusMessage || 'Initializing application engine...'}
                             </Text>
+                            <Loader size="xl" color="indigo" type="dots" />
                         </Stack>
                     </>
                 ) : (
