@@ -33,18 +33,17 @@ pub struct ConfigState {
 pub struct SidecarState {
     pub child: Mutex<Option<CommandChild>>,
     pub exit_rx: Mutex<Option<std::sync::mpsc::Receiver<()>>>,
-    pub port_rx: Mutex<Option<std::sync::mpsc::Receiver<u16>>>,
-    pub port_value: Mutex<Option<u16>>,
+    pub port_tx: tokio::sync::watch::Sender<Option<u16>>,
     pub app_data_dir: Mutex<Option<PathBuf>>,
 }
 
 impl Default for SidecarState {
     fn default() -> Self {
+        let (tx, _) = tokio::sync::watch::channel(None);
         Self {
             child: Mutex::new(None),
             exit_rx: Mutex::new(None),
-            port_rx: Mutex::new(None),
-            port_value: Mutex::new(None),
+            port_tx: tx,
             app_data_dir: Mutex::new(None),
         }
     }
@@ -53,7 +52,7 @@ impl Default for SidecarState {
 // --- COMMANDS ---
 
 #[tauri::command]
-fn get_backend_port(_state: tauri::State<'_, SidecarState>) -> Result<u16, String> {
+async fn get_backend_port(state: tauri::State<'_, SidecarState>) -> Result<u16, String> {
     // DEV MODE: Return a fixed port immediately
     #[cfg(debug_assertions)]
     {
@@ -63,22 +62,21 @@ fn get_backend_port(_state: tauri::State<'_, SidecarState>) -> Result<u16, Strin
     // PRODUCTION: Existing sidecar logic
     #[cfg(not(debug_assertions))]
     {
-        let mut cached = _state.port_value.lock().unwrap();
-        if let Some(port) = *cached {
+        let mut rx = state.port_tx.subscribe();
+        
+        // 1. Check if we already have the port
+        if let Some(port) = *rx.borrow() {
             return Ok(port);
         }
 
-        let rx = _state.port_rx.lock().unwrap().take();
-        if let Some(rx) = rx {
-            match rx.recv_timeout(std::time::Duration::from_secs(600)) {
-                Ok(port) => {
-                    *cached = Some(port);
-                    Ok(port)
-                }
-                Err(e) => Err(format!("Timeout waiting for backend port: {}", e)),
+        // 2. Wait for the port to be set (watch channel change)
+        match tokio::time::timeout(std::time::Duration::from_secs(60), rx.changed()).await {
+            Ok(Ok(_)) => {
+                let port = *rx.borrow();
+                port.ok_or_else(|| "Port not found after change".to_string())
             }
-        } else {
-            Err("Port receiver already consumed".to_string())
+            Ok(Err(e)) => Err(format!("Watch channel error: {}", e)),
+            Err(_) => Err("Timeout waiting for backend port".to_string()),
         }
     }
 }
@@ -123,15 +121,17 @@ fn spawn_production_sidecar(app: &tauri::App) -> Result<(), Box<dyn std::error::
     let sidecar = app.shell().sidecar("trackpad-math-backend")?;
     let (mut rx, child) = sidecar.spawn()?;
 
-    let state = app.state::<SidecarState>();
-    let (tx_port, rx_port) = std::sync::mpsc::channel();
+    let handle = app.handle().clone();
     let (tx_exit, rx_signal) = std::sync::mpsc::channel();
 
-    *state.child.lock().unwrap() = Some(child);
-    *state.exit_rx.lock().unwrap() = Some(rx_signal);
-    *state.port_rx.lock().unwrap() = Some(rx_port);
+    {
+        let state = handle.state::<SidecarState>();
+        *state.child.lock().unwrap() = Some(child);
+        *state.exit_rx.lock().unwrap() = Some(rx_signal);
+    }
 
     tauri::async_runtime::spawn(async move {
+        let state = handle.state::<SidecarState>();
         while let Some(event) = rx.recv().await {
             match event {
                 tauri_plugin_shell::process::CommandEvent::Stdout(line) => {
@@ -155,7 +155,7 @@ fn spawn_production_sidecar(app: &tauri::App) -> Result<(), Box<dyn std::error::
                     if line_str.contains("ACTUAL_PORT: ") {
                         if let Some(port_str) = line_str.split("ACTUAL_PORT: ").last() {
                             if let Ok(port) = port_str.trim().parse::<u16>() {
-                                let _ = tx_port.send(port);
+                                let _ = state.port_tx.send(Some(port));
                             }
                         }
                     }

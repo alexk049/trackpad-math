@@ -31,7 +31,7 @@ function App() {
         info(`Using dynamic backend port: ${port}`);
       } catch (e) {
         error('Failed to get backend port from Tauri:' + e);
-        // Fall back to default port 8000
+        throw new Error('Failed to get backend port from Tauri');
       }
 
       const API_BASE_URL = getApiBaseUrl();
