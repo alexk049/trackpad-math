@@ -52,7 +52,7 @@ impl Default for SidecarState {
 // --- COMMANDS ---
 
 #[tauri::command]
-async fn get_backend_port(state: tauri::State<'_, SidecarState>) -> Result<u16, String> {
+async fn get_backend_port(_state: tauri::State<'_, SidecarState>) -> Result<u16, String> {
     // DEV MODE: Return a fixed port immediately
     #[cfg(debug_assertions)]
     {
@@ -62,7 +62,7 @@ async fn get_backend_port(state: tauri::State<'_, SidecarState>) -> Result<u16, 
     // PRODUCTION: Existing sidecar logic
     #[cfg(not(debug_assertions))]
     {
-        let mut rx = state.port_tx.subscribe();
+        let mut rx = _state.port_tx.subscribe();
         
         // 1. Check if we already have the port
         if let Some(port) = *rx.borrow() {
@@ -231,7 +231,15 @@ pub fn run() {
                 .show_menu_on_left_click(false)
                 .on_menu_event(move |app, event| match event.id.as_ref() {
                     "quit" => {
-                        app.exit(0);
+                        let app_handle = app.clone();
+                        tauri::async_runtime::spawn(async move {
+                            for window in app_handle.webview_windows().values() {
+                                let _ = window.destroy();
+                            }
+                            // Give Chromium/WebView2 a moment to clean up window classes
+                            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                            app_handle.exit(0);
+                        });
                     }
                     "show" => {
                         if let Some(window) = app.get_webview_window("main") {
