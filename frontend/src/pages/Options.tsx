@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useMantineColorScheme, Container, Button, FileButton } from '@mantine/core';
+import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useMantineColorScheme, Container, Button, FileButton, Notification } from '@mantine/core';
 import { IconUpload, IconDownload, IconTrash } from '@tabler/icons-react';
 import { API_BASE_URL } from '../config';
 import { invoke } from '@tauri-apps/api/core';
@@ -37,8 +37,63 @@ export default function OptionsPage() {
         await invoke('set_config', { config: s });
     };
 
+    const [notification, setNotification] = useState<{ title: string, message: string, color: string } | null>(null);
+
+    const showNotification = (title: string, message: string, color: string = 'blue') => {
+        setNotification({ title, message, color });
+        setTimeout(() => setNotification(null), 5000);
+    };
+
+    const handleImport = async (file: File | null) => {
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const res = await fetch(`${API_BASE_URL()}/api/data/import`, { method: 'POST', body: formData });
+            if (res.ok) {
+                showNotification('Success', 'Data imported successfully', 'green');
+            } else {
+                const err = await res.json();
+                showNotification('Error', err.detail || 'Failed to import data', 'red');
+            }
+        } catch (e) {
+            showNotification('Error', 'Network error during import', 'red');
+        }
+    };
+
+    const handleExport = () => {
+        window.location.href = `${API_BASE_URL()}/api/data/export`;
+        showNotification('Success', 'Exported to Downloads folder', 'green');
+    };
+
+    const handleDelete = async () => {
+        if (!confirm('Are you sure you want to delete ALL training data? This cannot be undone.')) return;
+        try {
+            const res = await fetch(`${API_BASE_URL()}/api/data/reset`, { method: 'DELETE' });
+            if (res.ok) {
+                showNotification('Success', 'All data deleted', 'green');
+            } else {
+                const err = await res.json();
+                showNotification('Error', err.detail || 'Failed to delete data', 'red');
+            }
+        } catch (e) {
+            showNotification('Error', 'Network error during delete', 'red');
+        }
+    };
+
     return (
         <Container size="xl">
+            {notification && (
+                <Notification
+                    title={notification.title}
+                    color={notification.color}
+                    onClose={() => setNotification(null)}
+                    style={{ position: 'fixed', top: 70, right: 20, zIndex: 1000 }}
+                >
+                    {notification.message}
+                </Notification>
+            )}
+
             <Title order={2} mb="lg">Options</Title>
 
             <Stack gap="lg">
@@ -122,19 +177,11 @@ export default function OptionsPage() {
                     <Text fw={500} mb="xs">Data Management</Text>
                     <Text size="sm" c="dimmed" mb="md">Manage your training data.</Text>
                     <Group>
-                        <FileButton onChange={async (file) => {
-                            if (!file) return;
-                            const formData = new FormData();
-                            formData.append('file', file);
-                            await fetch(`${API_BASE_URL()}/api/data/import`, { method: 'POST', body: formData });
-                        }} accept="application/json">
+                        <FileButton onChange={handleImport} accept="application/json">
                             {(props) => <Button {...props} leftSection={<IconUpload size={16} />} variant="default">Import Data</Button>}
                         </FileButton>
-                        <Button onClick={() => window.location.href = `${API_BASE_URL()}/api/data/export`} leftSection={<IconDownload size={16} />} variant="default">Export Data</Button>
-                        <Button onClick={async () => {
-                            if (!confirm('Are you sure you want to delete ALL training data? This cannot be undone.')) return;
-                            await fetch(`${API_BASE_URL()}/api/data/reset`, { method: 'DELETE' });
-                        }} leftSection={<IconTrash size={16} />} color="red" variant="filled">Delete All Data</Button>
+                        <Button onClick={handleExport} leftSection={<IconDownload size={16} />} variant="default">Export Data</Button>
+                        <Button onClick={handleDelete} leftSection={<IconTrash size={16} />} color="red" variant="filled">Delete All Data</Button>
                     </Group>
                 </Card>
             </Stack>
