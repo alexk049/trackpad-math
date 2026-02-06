@@ -85,7 +85,7 @@ function App() {
   };
 
   useEffect(() => {
-    invoke('close_splashscreen');
+    invoke('show_main_window');
     initApp();
   }, []);
 

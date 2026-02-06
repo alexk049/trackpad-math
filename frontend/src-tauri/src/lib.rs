@@ -102,11 +102,7 @@ fn set_config(state: tauri::State<'_, ConfigState>, sidecar_state: tauri::State<
 }
 
 #[tauri::command]
-async fn close_splashscreen(window: tauri::Window) {
-  // Close splashscreen
-  if let Some(splashscreen) = window.get_webview_window("splashscreen") {
-    splashscreen.close().unwrap();
-  }
+async fn show_main_window(window: tauri::Window) {
   // Show main window
   if let Some(main_window) = window.get_webview_window("main") {
     main_window.show().unwrap();
@@ -203,7 +199,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .manage(SidecarState::default())
         .manage(ConfigState { config: Mutex::new(AppConfig::default()) })
-        .invoke_handler(tauri::generate_handler![get_backend_port, close_splashscreen, get_config, set_config])
+        .invoke_handler(tauri::generate_handler![get_backend_port, show_main_window, get_config, set_config])
         .setup(|app| {
             let app_data_dir = app.path().app_local_data_dir()?;
             std::fs::create_dir_all(&app_data_dir)?;

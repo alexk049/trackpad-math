@@ -20,18 +20,6 @@
         "fullscreen": false,
         "visible": false,
         "theme": "Dark"
-      },
-      {
-        "title": "Trackpad Math",
-        "label": "splashscreen",
-        "url": "/splashscreen.html",
-        "width": 300,
-        "height": 300,
-        "decorations": false,
-        "center": true,
-        "resizable": false,
-        "visible": true,
-        "theme": "Dark"
       }
     ],
     "security": {
