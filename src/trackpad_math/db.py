@@ -60,6 +60,7 @@ class Database:
         try:
             yield session
         finally:
+            session.commit()
             session.close()
 
     def init_db(self):
