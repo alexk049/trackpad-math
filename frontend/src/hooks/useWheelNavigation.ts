@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Settings } from '../types';
 
 export function useWheelNavigation(
-    mfRef: React.MutableRefObject<any>,
+    mfRef: React.RefObject<any>,
     settings: Settings | null
 ) {
     const wheelAccumulatorX = useRef(0);
