@@ -24,7 +24,7 @@ export default function TrainingPage() {
     useEffect(() => {
         const symbol = searchParams.get('symbol');
         if (symbol) {
-            session.toggleSymbol(symbol);
+            session.initTraining([symbol]);
         }
     }, [searchParams]);
 

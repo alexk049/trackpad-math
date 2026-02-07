@@ -23,6 +23,7 @@ type Action =
     | { type: 'SET_LAST_RECORDING'; points: any[] | null }
     | { type: 'NEXT_STEP_RECORDING' } // Advance counter/index
     | { type: 'FINISH_SESSION' }
+    | { type: 'INIT_TRAINING'; symbols: string[] }
 
 const initialState: TrainingState = {
     step: 'selection',
@@ -86,6 +87,19 @@ function reducer(state: TrainingState, action: Action): TrainingState {
                 }
             }
         }
+        case 'INIT_TRAINING': {
+            const selected = new Set(action.symbols);
+            if (selected.size === 0) return state;
+            return {
+                ...state,
+                selectedSymbols: selected,
+                step: 'training',
+                trainingQueue: Array.from(selected),
+                currentSymbolIndex: 0,
+                recordCount: 0,
+                lastRecording: null,
+            };
+        }
         default:
             return state;
     }
@@ -108,6 +122,11 @@ export function useTrainingSession() {
 
     const restart = useCallback(() => {
         dispatch({ type: 'RESTART' });
+    }, []);
+
+    const initTraining = useCallback((symbols: string[]) => {
+        // We need a new action type that sets selection AND starts
+        dispatch({ type: 'INIT_TRAINING', symbols });
     }, []);
 
     const setLastRecording = useCallback((points: any[] | null) => {
@@ -134,6 +153,7 @@ export function useTrainingSession() {
         restart,
         setLastRecording,
         advanceProgress,
+        initTraining,
         // Helpers
         currentSymbol,
         isLastSample,

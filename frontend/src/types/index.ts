@@ -51,7 +51,29 @@ export interface SymbolItem {
     latex: string;
 }
 
+// Training Categories
+export interface SymbolItem {
+    symbol: string;
+    description: string;
+    latex: string;
+}
+
 export interface Category {
     name: string;
     items: SymbolItem[];
 }
+
+export interface LabelData {
+    label: string;
+    count: number;
+    description?: string;
+    latex?: string;
+}
+
+export interface Drawing {
+    id: string;
+    label: string;
+    timestamp: string;
+    points: Point[];
+}
+
