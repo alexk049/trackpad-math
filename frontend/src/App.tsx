@@ -5,7 +5,7 @@ import { invoke } from '@tauri-apps/api/core';
 import MainLayout from './components/MainLayout';
 import EditorPage from './pages/EditorPage';
 import OptionsPage from './pages/Options';
-import DataPage from './pages/DataPage';
+import DataPage from './pages/DataViewerPage';
 import TrainingPage from './pages/TrainingPage';
 import LoadingPage from './pages/LoadingPage';
 import { getApiBaseUrl, setApiPort } from './config';

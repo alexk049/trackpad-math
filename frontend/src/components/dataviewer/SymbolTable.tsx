@@ -15,7 +15,7 @@ interface TrainingTableProps {
     onSelect: (label: string) => void;
 }
 
-export function TrainingTable({ data, selectedLabel, onSelect }: TrainingTableProps) {
+export function SymbolTable({ data, selectedLabel, onSelect }: TrainingTableProps) {
     const [filter, setFilter] = useState('');
 
     const filteredData = data.filter(item =>

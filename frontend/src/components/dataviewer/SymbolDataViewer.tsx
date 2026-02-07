@@ -1,7 +1,7 @@
 import { ActionIcon, Button, Card, Group, ScrollArea, Table, Title } from '@mantine/core';
 import { IconSchool } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
-import { StrokeCanvas } from './StrokeCanvas';
+import { StrokeCanvas } from '../StrokeCanvas';
 
 export interface Drawing {
     id: string;
@@ -18,7 +18,7 @@ interface DataViewerProps {
     onTeach: () => void;
 }
 
-export function DataViewer({ label, drawings, onClose, onDeleteDrawings, onTeach }: DataViewerProps) {
+export function SymbolDataViewer({ label, drawings, onClose, onDeleteDrawings, onTeach }: DataViewerProps) {
     // Keep track of all selected IDs
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     // Keep track of the "primary" selected drawing for visualization
