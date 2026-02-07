@@ -44,3 +44,14 @@ export interface TeacherPayload {
     label: string;
     points: Point[];
 }
+
+export interface SymbolItem {
+    symbol: string;
+    description: string;
+    latex: string;
+}
+
+export interface Category {
+    name: string;
+    items: SymbolItem[];
+}
