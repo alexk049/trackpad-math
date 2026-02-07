@@ -1,4 +1,5 @@
-import { ActionIcon, Button, Card, Group, ScrollArea, Table, Title } from '@mantine/core';
+import { ActionIcon, Button, Card, Group, ScrollArea, Table, Text, Title } from '@mantine/core';
+import { modals } from '@mantine/modals';
 import { IconSchool } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { StrokeCanvas } from '../StrokeCanvas';
@@ -94,8 +95,17 @@ export function SymbolDataViewer({ label, drawings, onClose, onDeleteDrawings, o
 
                     {selectedIds.size > 0 && (
                         <Button color="red" variant="subtle" size="xs" onClick={() => {
-                            if (!confirm(`Delete ${selectedIds.size} selected items?`)) return;
-                            onDeleteDrawings(Array.from(selectedIds));
+                            modals.openConfirmModal({
+                                title: 'Confirm Deletion',
+                                children: (
+                                    <Text size="sm">
+                                        Delete {selectedIds.size} selected items?
+                                    </Text>
+                                ),
+                                labels: { confirm: 'Delete', cancel: 'Cancel' },
+                                confirmProps: { color: 'red' },
+                                onConfirm: () => onDeleteDrawings(Array.from(selectedIds)),
+                            });
                         }}>
                             Delete Selected {selectedIds.size > 1 ? `(${selectedIds.size})` : ''}
                         </Button>

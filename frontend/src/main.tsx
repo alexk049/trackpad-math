@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { MantineProvider, createTheme } from '@mantine/core'
+import { ModalsProvider } from '@mantine/modals';
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import '@mantine/core/styles.css';
@@ -25,9 +26,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <MantineProvider theme={theme} defaultColorScheme="dark">
       <Notifications position="top-right" />
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <ModalsProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ModalsProvider>
     </MantineProvider>
   </React.StrictMode>,
 )

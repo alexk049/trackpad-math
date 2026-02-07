@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useMantineColorScheme, Container, Button, FileButton, Center, Loader } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import { modals } from '@mantine/modals';
 import { IconUpload, IconDownload, IconTrash } from '@tabler/icons-react';
 import { invoke } from '@tauri-apps/api/core';
 import { apiClient } from '../api/client';
@@ -55,13 +56,24 @@ export default function OptionsPage() {
     };
 
     const handleDelete = async () => {
-        if (!confirm('Are you sure you want to delete ALL training data? This cannot be undone.')) return;
-        try {
-            await apiClient('/api/data/reset', { method: 'DELETE' });
-            notifications.show({ title: 'Success', message: 'All data deleted', color: 'green' });
-        } catch (e: any) {
-            notifications.show({ title: 'Error', message: e.message || 'Failed to delete data', color: 'red' });
-        }
+        modals.openConfirmModal({
+            title: 'Delete All Data',
+            children: (
+                <Text size="sm">
+                    Are you sure you want to delete ALL training data? This cannot be undone.
+                </Text>
+            ),
+            labels: { confirm: 'Delete All', cancel: 'Cancel' },
+            confirmProps: { color: 'red' },
+            onConfirm: async () => {
+                try {
+                    await apiClient('/api/data/reset', { method: 'DELETE' });
+                    notifications.show({ title: 'Success', message: 'All data deleted', color: 'green' });
+                } catch (e: any) {
+                    notifications.show({ title: 'Error', message: e.message || 'Failed to delete data', color: 'red' });
+                }
+            },
+        });
     };
 
     if (loading || !settings) {
