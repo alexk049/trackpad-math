@@ -1,99 +1,75 @@
 import { useEffect, useState } from 'react';
-import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useMantineColorScheme, Container, Button, FileButton, Notification } from '@mantine/core';
+import { Title, Switch, Slider, Text, Stack, Card, Group, SegmentedControl, useMantineColorScheme, Container, Button, FileButton, Center, Loader } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { IconUpload, IconDownload, IconTrash } from '@tabler/icons-react';
-import { API_BASE_URL } from '../config';
 import { invoke } from '@tauri-apps/api/core';
+import { apiClient } from '../api/client';
+import { getApiBaseUrl } from '../api/config'; // Need URL string for direct link
+import { useSettings } from '../hooks/useSettings';
+
+interface DesktopSettings {
+    minimizeToTray: boolean;
+}
 
 export default function OptionsPage() {
-    const [settings, setSettings] = useState({
-        auto_mode: false,
-        pause_threshold: 1000,
-        equation_scroll_x_sensitivity: 20,
-        equation_scroll_y_sensitivity: 20
-    });
-    const [desktopSettings, setDesktopSettings] = useState({
+    // App Settings
+    const { settings, loading, updateSettings } = useSettings();
+
+    // Desktop Settings
+    const [desktopSettings, setDesktopSettings] = useState<DesktopSettings>({
         minimizeToTray: true,
     });
+
     const { colorScheme, setColorScheme } = useMantineColorScheme();
 
+    // Fetch Desktop Config
     useEffect(() => {
-        fetch(`${API_BASE_URL()}/api/settings`).then((res) => res.json()).then(setSettings);
-        invoke('get_config').then((res: any) => setDesktopSettings(res));
+        invoke('get_config')
+            .then((res: any) => setDesktopSettings(res))
+            .catch(err => console.error("Failed to load desktop config", err));
     }, []);
 
-    const update = async (newSettings: any) => {
-        const s = { ...settings, ...newSettings };
-        setSettings(s);
-        await fetch(`${API_BASE_URL()}/api/settings`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(s),
-        });
-    };
-
-    const updateDesktop = async (newSettings: any) => {
+    const updateDesktop = async (newSettings: Partial<DesktopSettings>) => {
         const s = { ...desktopSettings, ...newSettings };
         setDesktopSettings(s);
         await invoke('set_config', { config: s });
     };
 
-    const [notification, setNotification] = useState<{ title: string, message: string, color: string } | null>(null);
-
-    const showNotification = (title: string, message: string, color: string = 'blue') => {
-        setNotification({ title, message, color });
-        setTimeout(() => setNotification(null), 5000);
-    };
-
+    // Data Handlers
     const handleImport = async (file: File | null) => {
         if (!file) return;
         const formData = new FormData();
         formData.append('file', file);
         try {
-            const res = await fetch(`${API_BASE_URL()}/api/data/import`, { method: 'POST', body: formData });
-            if (res.ok) {
-                showNotification('Success', 'Data imported successfully', 'green');
-            } else {
-                const err = await res.json();
-                showNotification('Error', err.detail || 'Failed to import data', 'red');
-            }
-        } catch (e) {
-            showNotification('Error', 'Network error during import', 'red');
+            await apiClient('/api/data/import', { method: 'POST', body: formData });
+            notifications.show({ title: 'Success', message: 'Data imported successfully', color: 'green' });
+        } catch (e: any) {
+            notifications.show({ title: 'Error', message: e.message || 'Failed to import data', color: 'red' });
         }
     };
 
     const handleExport = () => {
-        window.location.href = `${API_BASE_URL()}/api/data/export`;
-        showNotification('Success', 'Exported to Downloads folder', 'green');
+        // Direct link is fine for download, or use blob download via fetch if auth needed later.
+        window.location.href = `${getApiBaseUrl()}/api/data/export`;
+        notifications.show({ title: 'Success', message: 'Exported to Downloads folder', color: 'green' });
     };
 
     const handleDelete = async () => {
         if (!confirm('Are you sure you want to delete ALL training data? This cannot be undone.')) return;
         try {
-            const res = await fetch(`${API_BASE_URL()}/api/data/reset`, { method: 'DELETE' });
-            if (res.ok) {
-                showNotification('Success', 'All data deleted', 'green');
-            } else {
-                const err = await res.json();
-                showNotification('Error', err.detail || 'Failed to delete data', 'red');
-            }
-        } catch (e) {
-            showNotification('Error', 'Network error during delete', 'red');
+            await apiClient('/api/data/reset', { method: 'DELETE' });
+            notifications.show({ title: 'Success', message: 'All data deleted', color: 'green' });
+        } catch (e: any) {
+            notifications.show({ title: 'Error', message: e.message || 'Failed to delete data', color: 'red' });
         }
     };
 
+    if (loading || !settings) {
+        return <Center h="50vh"><Loader /></Center>;
+    }
+
     return (
         <Container size="xl">
-            {notification && (
-                <Notification
-                    title={notification.title}
-                    color={notification.color}
-                    onClose={() => setNotification(null)}
-                    style={{ position: 'fixed', top: 70, right: 20, zIndex: 1000 }}
-                >
-                    {notification.message}
-                </Notification>
-            )}
-
             <Title order={2} mb="lg">Options</Title>
 
             <Stack gap="lg">
@@ -134,7 +110,7 @@ export default function OptionsPage() {
                         </div>
                         <Switch
                             checked={settings.auto_mode}
-                            onChange={(e) => update({ auto_mode: e.currentTarget.checked })}
+                            onChange={(e) => updateSettings({ auto_mode: e.currentTarget.checked })}
                         />
                     </Group>
                 </Card>
@@ -145,8 +121,8 @@ export default function OptionsPage() {
                     <Slider
                         min={200} max={3000} step={50}
                         value={settings.pause_threshold}
-                        onChange={(val) => setSettings({ ...settings, pause_threshold: val })}
-                        onChangeEnd={(val) => update({ pause_threshold: val })}
+                        defaultValue={settings.pause_threshold}
+                        onChangeEnd={(val) => updateSettings({ pause_threshold: val })}
                         label={(val) => `${val}ms`}
                     />
                 </Card>
@@ -156,9 +132,8 @@ export default function OptionsPage() {
                     <Text size="sm" c="dimmed" mb="md">How fast the cursor moves horizontally when scrolling</Text>
                     <Slider
                         min={1} max={100} step={1}
-                        value={settings.equation_scroll_x_sensitivity}
-                        onChange={(val) => setSettings({ ...settings, equation_scroll_x_sensitivity: val })}
-                        onChangeEnd={(val) => update({ equation_scroll_x_sensitivity: val })}
+                        defaultValue={settings.equation_scroll_x_sensitivity}
+                        onChangeEnd={(val) => updateSettings({ equation_scroll_x_sensitivity: val })}
                     />
                 </Card>
 
@@ -167,9 +142,8 @@ export default function OptionsPage() {
                     <Text size="sm" c="dimmed" mb="md">How fast the cursor moves vertically when scrolling</Text>
                     <Slider
                         min={1} max={100} step={1}
-                        value={settings.equation_scroll_y_sensitivity}
-                        onChange={(val) => setSettings({ ...settings, equation_scroll_y_sensitivity: val })}
-                        onChangeEnd={(val) => update({ equation_scroll_y_sensitivity: val })}
+                        defaultValue={settings.equation_scroll_y_sensitivity}
+                        onChangeEnd={(val) => updateSettings({ equation_scroll_y_sensitivity: val })}
                     />
                 </Card>
 
