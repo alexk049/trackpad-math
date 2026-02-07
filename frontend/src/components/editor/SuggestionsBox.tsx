@@ -1,7 +1,7 @@
 import { ActionIcon, Box, Button, Chip, Group, Select, Text } from '@mantine/core';
 import { IconCheck, IconX } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from '../../config';
 
 interface SuggestionsBoxProps {
     candidates: { symbol: string; confidence: number }[];

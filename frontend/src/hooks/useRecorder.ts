@@ -1,11 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { API_BASE_URL } from '../config';
-
-export interface Point {
-    x: number;
-    y: number;
-    t: number;
-}
+import { API_BASE_URL, getWsUrl } from '../api/config';
+import type { Point } from '../types';
 
 export function segmentStrokes(points: Point[]): Point[][] {
     if (points.length === 0) return [];
@@ -45,6 +40,7 @@ export function segmentStrokes(points: Point[]): Point[][] {
 
 export function useRecorder(manualMode: boolean = false) {
     const [isRecording, setIsRecording] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
     const [recordedPoints, setRecordedPoints] = useState<Point[] | null>(null);
     const [settings, setSettings] = useState<any>(null);
 
@@ -89,6 +85,7 @@ export function useRecorder(manualMode: boolean = false) {
         isRecordingRef.current = true;
         hasMovedRef.current = false;
         startPosRef.current = null;
+        setIsPaused(false);
         setIsRecording(true);
     }, []);
 
@@ -117,7 +114,7 @@ export function useRecorder(manualMode: boolean = false) {
     }, [startRecordingSequence]);
 
     useEffect(() => {
-        const wsUrl = API_BASE_URL().replace('http', 'ws') + '/ws/record';
+        const wsUrl = getWsUrl('/ws/record');
         ws.current = new WebSocket(wsUrl);
 
         // ws.current.onopen = () => console.log('Recorder WS Connected');
@@ -138,7 +135,6 @@ export function useRecorder(manualMode: boolean = false) {
         };
     }, [beginRecording]);
 
-    const [isPaused, setIsPaused] = useState(false);
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {

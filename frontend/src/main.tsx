@@ -4,9 +4,11 @@ import { MantineProvider, createTheme } from '@mantine/core'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
 import './index.css'
 import { MathfieldElement } from 'mathlive';
 import { info } from '@tauri-apps/plugin-log';
+import { Notifications } from '@mantine/notifications';
 
 MathfieldElement.fontsDirectory = '/fonts';
 // turn off math virtual keyboard button click sounds
@@ -22,6 +24,7 @@ const theme = createTheme({
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <MantineProvider theme={theme} defaultColorScheme="dark">
+      <Notifications position="top-right" />
       <BrowserRouter>
         <App />
       </BrowserRouter>
