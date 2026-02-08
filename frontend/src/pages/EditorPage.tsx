@@ -35,7 +35,7 @@ export default function EditorPage() {
         reset: resetClassification
     } = useClassification();
 
-    const { mfRef, insertSymbol, focus } = useMathInput(symbols);
+    const { mfRef, insertSymbol, replaceWithSymbol, focus } = useMathInput(symbols);
 
     useWheelNavigation(mfRef, settings);
 
@@ -124,8 +124,7 @@ export default function EditorPage() {
 
     // Handlers
     const handleSuggestionClick = (sym: string) => {
-        mfRef.current?.executeCommand(['deleteBackward']);
-        insertSymbol(sym);
+        replaceWithSymbol(sym);
     };
 
     const handleConfirmRetrain = async (symbol: string) => {

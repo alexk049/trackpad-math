@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import type { Settings } from '../types';
+import type { MathfieldElement } from 'mathlive';
+
 
 export function useWheelNavigation(
-    mfRef: React.RefObject<any>,
+    mfRef: React.RefObject<MathfieldElement | null>,
     settings: Settings | null
 ) {
     const wheelAccumulatorX = useRef(0);
@@ -12,11 +14,10 @@ export function useWheelNavigation(
 
     useEffect(() => {
         const handleWheel = (e: WheelEvent) => {
-            if (!mfRef.current || document.activeElement !== mfRef.current) {
-                return;
-            }
+            const mf = mfRef.current;
+            if (!mf || document.activeElement !== mf) return;
 
-            //prevent default for page scroll
+            // Prevent page scroll
             e.preventDefault();
 
             const now = Date.now();
@@ -39,10 +40,9 @@ export function useWheelNavigation(
             const thresholdY = settings?.equation_scroll_y_sensitivity ? 400 / settings.equation_scroll_y_sensitivity : 20;
 
             if (Math.abs(dx) > Math.abs(dy)) {
-                // X axis dominant
+                // X-AXIS
                 if (lastWheelAxis.current !== 'x') {
                     wheelAccumulatorX.current = 0;
-                    wheelAccumulatorY.current = 0;
                     lastWheelAxis.current = 'x';
                 }
                 wheelAccumulatorX.current += dx;
@@ -50,23 +50,23 @@ export function useWheelNavigation(
                 if (steps > 0) {
                     const direction = Math.sign(wheelAccumulatorX.current);
                     for (let i = 0; i < steps; i++) {
-                        mfRef.current.executeCommand(direction > 0 ? 'moveToNextChar' : 'moveToPreviousChar');
+                        mf.executeCommand(direction > 0 ? 'moveToNextChar' : 'moveToPreviousChar');
                     }
                     wheelAccumulatorX.current -= steps * thresholdX * direction;
                 }
             } else if (Math.abs(dy) > Math.abs(dx)) {
-                // Y axis dominant
+                // Y-AXIS
                 if (lastWheelAxis.current !== 'y') {
-                    wheelAccumulatorX.current = 0;
                     wheelAccumulatorY.current = 0;
                     lastWheelAxis.current = 'y';
                 }
                 wheelAccumulatorY.current += dy;
                 const steps = Math.floor(Math.abs(wheelAccumulatorY.current) / thresholdY);
+
                 if (steps > 0) {
-                    const direction = Math.sign(wheelAccumulatorY.current);
+                    const direction = Math.sign(wheelAccumulatorY.current); // > 0 is scroll down
                     for (let i = 0; i < steps; i++) {
-                        mfRef.current.executeCommand(direction > 0 ? 'moveDown' : 'moveUp');
+                        mf.executeCommand(direction > 0 ? 'moveDown' : 'moveUp');
                     }
                     wheelAccumulatorY.current -= steps * thresholdY * direction;
                 }
@@ -74,8 +74,6 @@ export function useWheelNavigation(
         };
 
         window.addEventListener('wheel', handleWheel, { passive: false });
-        return () => {
-            window.removeEventListener('wheel', handleWheel);
-        };
+        return () => window.removeEventListener('wheel', handleWheel);
     }, [settings, mfRef]);
 }

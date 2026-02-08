@@ -1,52 +1,73 @@
 import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import 'mathlive';
+import type { MathfieldElement } from 'mathlive';
 
 interface MathInputProps {
+    /** Current LaTeX value */
     value?: string;
+    /** Called when the mathfield content changes */
     onChange?: (value: string) => void;
+    /** Custom styles for the container */
     style?: React.CSSProperties;
+    /** The DOM element where the virtual keyboard should be rendered. If not provided, it will use its default placement. */
     container?: HTMLElement;
+    /** Whether the virtual keyboard should be visible */
     mvkVisible?: boolean;
 }
 
-export const MathInput = forwardRef<HTMLElement, MathInputProps>(({ value, onChange, style, container, mvkVisible }, ref) => {
-    const mfRef = useRef<HTMLElement>(null);
+/**
+ * MathInput is a React wrapper around the <math-field> custom element.
+ * It handles the view-level integration, styling, and basic event synchronization.
+ */
+export const MathInput = forwardRef<MathfieldElement, MathInputProps>(({
+    value,
+    onChange,
+    style,
+    container,
+    mvkVisible
+}, ref) => {
+    const internalMfRef = useRef<MathfieldElement>(null);
 
-    useImperativeHandle(ref, () => mfRef.current!);
+    // Expose the internal element to the parent ref
+    useImperativeHandle(ref, () => internalMfRef.current!);
 
+    // Handle initial setup and event listeners
     useEffect(() => {
-        const mf = mfRef.current;
+        const mf = internalMfRef.current;
         if (!mf) return;
 
-        // Attach listener
-        const handler = (evt: Event) => {
-            onChange?.((evt.target as any).value);
-        };
-        mf.addEventListener('input', handler);
+        // Force manual policy so we can control it via the 'mvkVisible' prop
+        mf.mathVirtualKeyboardPolicy = "manual";
 
+        const handler = (evt: Event) => {
+            const target = evt.target as MathfieldElement;
+            onChange?.(target.value);
+        };
+
+        mf.addEventListener('input', handler);
         return () => mf.removeEventListener('input', handler);
     }, [onChange]);
 
+    // Synchronize value prop with mathfield
     useEffect(() => {
-        const mf = mfRef.current;
-        if (!mf) return;
-        (mf as any).setValue(value, { suppressChangeNotifications: true });
+        const mf = internalMfRef.current;
+        if (!mf && value === undefined) return;
+
+        // We only update if the value is different to avoid cursor jumps
+        if (mf && mf.value !== value) {
+            mf.setValue(value || "", { silenceNotifications: true });
+        }
     }, [value]);
 
+    // Handle Virtual Keyboard Container
     useEffect(() => {
-        const mf = mfRef.current;
-        if (!mf) return;
-
-        (mf as any).mathVirtualKeyboardPolicy = "manual";
         if (container) {
             window.mathVirtualKeyboard.container = container;
-            window.mathVirtualKeyboard.show();
         }
     }, [container]);
 
+    // Handle Virtual Keyboard Visibility
     useEffect(() => {
-        const mf = mfRef.current;
-        if (!mf) return;
         if (mvkVisible) {
             window.mathVirtualKeyboard.show();
         } else {
@@ -55,7 +76,15 @@ export const MathInput = forwardRef<HTMLElement, MathInputProps>(({ value, onCha
     }, [mvkVisible]);
 
     return React.createElement('math-field', {
-        ref: mfRef,
-        style: { display: 'block', width: '100%', fontSize: '2em', padding: '10px', borderRadius: '8px', ...style },
+        ref: internalMfRef,
+        style: {
+            display: 'block',
+            width: '100%',
+            fontSize: '2em',
+            padding: '10px',
+            borderRadius: '8px',
+            border: '1px solid var(--mantine-color-default-border)',
+            ...style
+        },
     });
 });
