@@ -54,7 +54,6 @@ export function RecordingOverlay({
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'flex-end',
-                padding: 40,
                 opacity: visible ? 1 : 0,
                 pointerEvents: visible ? 'all' : 'none',
                 transition: 'opacity 0.2s ease',
@@ -68,7 +67,8 @@ export function RecordingOverlay({
                     alignItems: 'flex-end',
                     gap: 20,
                     width: '100%',
-                    pointerEvents: 'all'
+                    pointerEvents: 'all',
+                    padding: 40,
                 }}
                 onMouseEnter={() => onPause(true)}
                 onMouseLeave={() => onPause(false)}
