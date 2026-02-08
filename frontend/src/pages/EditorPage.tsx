@@ -35,7 +35,7 @@ export default function EditorPage() {
         reset: resetClassification
     } = useClassification();
 
-    const { mfRef, insertSymbol, replaceWithSymbol, focus } = useMathInput(symbols);
+    const { mfRef, insertSymbol, focus, executeCommand } = useMathInput(symbols);
 
     useWheelNavigation(mfRef, settings);
 
@@ -99,6 +99,30 @@ export default function EditorPage() {
         return () => window.removeEventListener('keydown', handler);
     }, [toggleRecording]);
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.repeat) return;
+            if (e.key === 'Shift') {
+                executeCommand('moveToSuperscript');
+            } else if (e.key === 'Control') {
+                executeCommand('moveToSubscript');
+            }
+        };
+
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.key === 'Shift' || e.key === 'Control') {
+                executeCommand('moveAfterParent');
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, [executeCommand]);
+
     // Cleanup recording on unload
     useEffect(() => {
         const handleUnload = () => {
@@ -124,7 +148,8 @@ export default function EditorPage() {
 
     // Handlers
     const handleSuggestionClick = (sym: string) => {
-        replaceWithSymbol(sym);
+        executeCommand('deleteBackward')
+        insertSymbol(sym);
     };
 
     const handleConfirmRetrain = async (symbol: string) => {
