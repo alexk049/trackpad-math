@@ -8,6 +8,7 @@ import OptionsPage from './pages/Options';
 import DataPage from './pages/DataViewerPage';
 import TrainingPage from './pages/TrainingPage';
 import LoadingPage from './pages/LoadingPage';
+import AboutPage from './pages/AboutPage';
 import { getApiBaseUrl, setApiPort } from './config';
 import { info, debug, error } from '@tauri-apps/plugin-log';
 
@@ -107,6 +108,7 @@ function App() {
         <Route path="/options" element={<OptionsPage />} />
         <Route path="/data" element={<DataPage />} />
         <Route path="/training" element={<TrainingPage />} />
+        <Route path="/about" element={<AboutPage />} />
       </Route>
     </Routes>
   )
