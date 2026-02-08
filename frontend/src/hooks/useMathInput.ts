@@ -61,15 +61,6 @@ export function useMathInput(symbols: SymbolDefinition[]) {
     }, [symbols, executeCommand]);
 
     /**
-     * Replaces the current selection or character with a new symbol.
-     * Often used when clicking a suggestion.
-     */
-    const replaceWithSymbol = useCallback((symbolLabel: string) => {
-        executeCommand('deleteBackward');
-        return insertSymbol(symbolLabel);
-    }, [executeCommand, insertSymbol]);
-
-    /**
      * Focuses the mathfield.
      */
     const focus = useCallback(() => {
@@ -86,7 +77,6 @@ export function useMathInput(symbols: SymbolDefinition[]) {
     return {
         mfRef,
         insertSymbol,
-        replaceWithSymbol,
         executeCommand,
         focus,
         setValue
