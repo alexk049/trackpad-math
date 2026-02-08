@@ -40,7 +40,7 @@ export default function MainLayout() {
         >
             <AppShell.Header>
                 <Group h="100%" px="md" justify="space-between">
-                    <Title order={3}>TrackpadChars</Title>
+                    <Title order={3}>Trackpad Math</Title>
                     <Burger
                         mt={0}
                         opened={opened}

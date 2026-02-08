@@ -79,9 +79,9 @@ export default function EditorPage() {
             const success = insertSymbol(classificationState.symbol);
             if (!success) {
                 notifications.show({
-                    title: 'Error',
-                    message: 'Unknown symbol',
-                    color: 'red'
+                    title: 'Check Symbol',
+                    message: "Unknown symbol.",
+                    color: 'orange'
                 });
             }
         }

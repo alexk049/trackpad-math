@@ -16,7 +16,7 @@ export default function LoadingPage({ statusMessage, errorMessage, onRetry }: Lo
                     <>
                         <Stack align="center" gap="xs">
                             <Text c="dimmed" size="sm" ta="center">
-                                {statusMessage || 'Initializing application engine...'}
+                                {statusMessage || 'Getting things ready...'}
                             </Text>
                             <Loader size="xl" color="indigo" type="dots" />
                         </Stack>
@@ -26,7 +26,7 @@ export default function LoadingPage({ statusMessage, errorMessage, onRetry }: Lo
                         <Stack align="center" gap="sm">
                             <Group gap="xs" c="red.7">
                                 <IconAlertCircle size={28} />
-                                <Title order={3} mt={5}>Failed to Initialize</Title>
+                                <Title order={3} mt={5}>Unable to Start</Title>
                             </Group>
                             <Text size="sm" ta="center" c="dimmed">
                                 {errorMessage}
@@ -37,7 +37,7 @@ export default function LoadingPage({ statusMessage, errorMessage, onRetry }: Lo
                             color="indigo"
                             onClick={onRetry}
                         >
-                            Try Again
+                            Restart Application
                         </Button>
                     </>
                 )}

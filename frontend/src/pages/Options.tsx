@@ -43,7 +43,7 @@ export default function OptionsPage() {
         formData.append('file', file);
         try {
             await apiClient('/api/data/import', { method: 'POST', body: formData });
-            notifications.show({ title: 'Success', message: 'Data imported successfully', color: 'green' });
+            notifications.show({ title: 'Success', message: 'Your training data has been imported successfully.', color: 'green' });
         } catch (e: any) {
             notifications.show({ title: 'Error', message: e.message || 'Failed to import data', color: 'red' });
         }
@@ -52,7 +52,7 @@ export default function OptionsPage() {
     const handleExport = () => {
         // Direct link is fine for download, or use blob download via fetch if auth needed later.
         window.location.href = `${getApiBaseUrl()}/api/data/export`;
-        notifications.show({ title: 'Success', message: 'Exported to Downloads folder', color: 'green' });
+        notifications.show({ title: 'Success', message: 'Your data has been exported to the Downloads folder.', color: 'green' });
     };
 
     const handleDelete = async () => {
@@ -68,7 +68,7 @@ export default function OptionsPage() {
             onConfirm: async () => {
                 try {
                     await apiClient('/api/data/reset', { method: 'DELETE' });
-                    notifications.show({ title: 'Success', message: 'All data deleted', color: 'green' });
+                    notifications.show({ title: 'Success', message: 'All training data has been cleared.', color: 'green' });
                 } catch (e: any) {
                     notifications.show({ title: 'Error', message: e.message || 'Failed to delete data', color: 'red' });
                 }

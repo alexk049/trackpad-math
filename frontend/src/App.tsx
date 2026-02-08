@@ -15,7 +15,7 @@ import { info, debug, error } from '@tauri-apps/plugin-log';
 function App() {
   const [isReady, setIsReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState('Connecting to backend...');
+  const [statusMessage, setStatusMessage] = useState('Initializing...');
 
   const initApp = async () => {
     setInitError(null);
@@ -23,7 +23,7 @@ function App() {
 
     try {
       // 0. In production, get the dynamic port from Tauri
-      setStatusMessage('Getting backend port...');
+      setStatusMessage('Setting up communication...');
       info("Getting backend port")
       try {
         // This call blocks until the backend reports its actual port
@@ -32,13 +32,13 @@ function App() {
         info(`Using dynamic backend port: ${port}`);
       } catch (e) {
         error('Failed to get backend port from Tauri:' + e);
-        throw new Error('Failed to get backend port from Tauri');
+        throw new Error('System communication failed to initialize.');
       }
 
       const API_BASE_URL = getApiBaseUrl();
 
       // 1. Wait for backend to be reachable
-      setStatusMessage('Connecting to backend...');
+      setStatusMessage('Connecting to the math engine...');
       let connected = false;
       let attempts = 0;
       while (!connected && attempts < 50) {
@@ -54,34 +54,34 @@ function App() {
       }
 
       if (!connected) {
-        throw new Error('Backend server is not responding. Please check if the background process is running.');
+        throw new Error('The math engine didn\'t respond in time. Please try restarting the application.');
       }
 
       // 2. Check model status
       debug("Checking model status");
-      setStatusMessage('Checking recognition model...');
+      setStatusMessage('Preparing handwriting recognition...');
       const statusRes = await fetch(`${API_BASE_URL}/api/status`);
       if (!statusRes.ok) {
-        throw new Error('Failed to fetch model status');
+        throw new Error('Could not verify the recognition engine status.');
       }
 
       const statusData = await statusRes.json();
       if (!statusData.model_loaded) {
-        throw new Error('Recognition model failed to load. You might need to train it in the Training page if it persists.');
+        throw new Error('Unable to load the handwriting engine.');
       }
 
       // 3. Fetch settings
-      setStatusMessage('Loading preferences...');
+      setStatusMessage('Applying your settings...');
       const settingsRes = await fetch(`${API_BASE_URL}/api/settings`);
       if (!settingsRes.ok) {
-        throw new Error('Failed to fetch application settings');
+        throw new Error('We couldn\'t load your personal preferences.');
       }
 
       // Success
       setIsReady(true);
     } catch (e: any) {
       error("Initialization error: " + e);
-      setInitError(e.message || 'An unexpected error occurred during startup.');
+      setInitError(e.message || 'Ran into an unexpected problem while starting up. Please try again.');
     }
   };
 
@@ -95,7 +95,7 @@ function App() {
       <LoadingPage
         statusMessage={statusMessage}
         errorMessage={initError || undefined}
-        onRetry={initApp}
+        onRetry={() => invoke('relaunch')}
       />
     );
   }

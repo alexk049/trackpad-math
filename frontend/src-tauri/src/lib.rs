@@ -110,6 +110,11 @@ async fn show_main_window(window: tauri::Window) {
   }
 }
 
+#[tauri::command]
+fn relaunch(app_handle: tauri::AppHandle) {
+  app_handle.restart();
+}
+
 // --- SIDECAR LOGIC (Production Only) ---
 
 #[cfg(not(debug_assertions))]
@@ -199,7 +204,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .manage(SidecarState::default())
         .manage(ConfigState { config: Mutex::new(AppConfig::default()) })
-        .invoke_handler(tauri::generate_handler![get_backend_port, show_main_window, get_config, set_config])
+        .invoke_handler(tauri::generate_handler![get_backend_port, show_main_window, get_config, set_config, relaunch])
         .setup(|app| {
             let app_data_dir = app.path().app_local_data_dir()?;
             std::fs::create_dir_all(&app_data_dir)?;
