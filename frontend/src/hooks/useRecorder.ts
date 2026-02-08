@@ -222,6 +222,7 @@ export function useRecorder(manualMode: boolean = false) {
         if (isStartingRef.current) return;
         if (isRecordingRef.current) {
             stopRecording();
+            setIsPaused(false)
         } else {
             isStartingRef.current = true;
             startRecordingSequence();
