@@ -1,14 +1,14 @@
 import { info } from "@tauri-apps/plugin-log";
 
 // Internal mutable state
-let _API_BASE_URL = "http://localhost:8000";
+let _API_BASE_URL = "http://127.0.0.1:8000";
 
 // Getter function - always returns the current value
 export const getApiBaseUrl = () => _API_BASE_URL;
 
 // Setter function - updates the port
 export const setApiPort = (port: number) => {
-    _API_BASE_URL = `http://localhost:${port}`;
+    _API_BASE_URL = `http://127.0.0.1:${port}`;
     info(`API Base URL set to: ${_API_BASE_URL}`);
 };
 

@@ -1,7 +1,7 @@
 import { ActionIcon, Box, Button, Chip, Group, Select, Text } from '@mantine/core';
 import { IconCheck, IconX } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL } from '../../api/config';
 
 interface SuggestionsBoxProps {
     candidates: { symbol: string; confidence: number }[];
@@ -67,11 +67,7 @@ export function SuggestionsBox({ candidates, onSelect, onConfirmRetrain, onClose
 
     return (
         <Box
-            p="md" style={{
-                border: '1px solid var(--mantine-color-default-border)',
-                borderRadius: 8,
-                position: 'relative'
-            }}>
+            p="md" >
             <ActionIcon
                 variant="subtle"
                 color="gray"

@@ -9,7 +9,7 @@ import DataPage from './pages/DataViewerPage';
 import TrainingPage from './pages/TrainingPage';
 import LoadingPage from './pages/LoadingPage';
 import AboutPage from './pages/AboutPage';
-import { getApiBaseUrl, setApiPort } from './config';
+import { getApiBaseUrl, setApiPort } from './api/config';
 import { info, debug, error } from '@tauri-apps/plugin-log';
 
 function App() {
