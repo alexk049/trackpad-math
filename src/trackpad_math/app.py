@@ -6,6 +6,7 @@ from trackpad_math.db import Database
 from trackpad_math.routers import websocket, data, settings
 from trackpad_math.socket_manager import ConnectionManager
 from trackpad_math.model import SymbolClassifier
+from fastapi.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
@@ -42,10 +43,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Trackpad Math", lifespan=lifespan)
 
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",    # Dev origin (Vite)
+        "http://127.0.0.1:5173",    # Dev origin (Vite)
         "tauri://localhost",        # Prod origin (Linux/macOS)
         "https://tauri.localhost", # Prod origin (Windows)
         "http://tauri.localhost", # Prod origin (Windows)

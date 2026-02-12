@@ -1,4 +1,4 @@
-import { Container, Title, Stack, Button, Accordion, Group, Text, Checkbox } from '@mantine/core';
+import { Container, Title, Stack, Button, Accordion, Group, Text, Checkbox, Center, Loader } from '@mantine/core';
 import type { Category } from '../../types';
 
 interface TrainingSelectionProps {
@@ -43,9 +43,12 @@ export function TrainingSelection({
                                         <Checkbox
                                             checked={allSelected}
                                             indeterminate={someSelected && !allSelected}
+                                            disabled={!cat.items || cat.items.length === 0}
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                onToggleCategory(cat.items.map(i => i.symbol), !allSelected);
+                                                if (cat.items && cat.items.length > 0) {
+                                                    onToggleCategory(cat.items.map(i => i.symbol), !allSelected);
+                                                }
                                             }}
                                             readOnly
                                         />
@@ -53,24 +56,30 @@ export function TrainingSelection({
                                 </Accordion.Control>
                                 <Accordion.Panel>
                                     <Group gap="md">
-                                        {cat.items?.map(item => (
-                                            <Checkbox
-                                                key={item.symbol}
-                                                label={
-                                                    <div style={{ lineHeight: 1.2 }}>
-                                                        <Group gap="xs" align="center">
-                                                            <Text size="sm">{item.symbol}</Text>
-                                                        </Group>
-                                                        <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
-                                                            {item.description}
-                                                        </Text>
-                                                    </div>
-                                                }
-                                                checked={selectedSymbols.has(item.symbol)}
-                                                onChange={() => onToggleSymbol(item.symbol)}
-                                                style={{ width: 'calc(33% - 16px)', alignItems: 'flex-start' }}
-                                            />
-                                        ))}
+                                        {!cat.items || cat.items.length === 0 ? (
+                                            <Center w="100%" py="sm">
+                                                <Loader size="sm" variant="dots" />
+                                            </Center>
+                                        ) : (
+                                            cat.items.map(item => (
+                                                <Checkbox
+                                                    key={item.symbol + item.description}
+                                                    label={
+                                                        <div style={{ lineHeight: 1.2 }}>
+                                                            <Group gap="xs" align="center">
+                                                                <Text size="sm">{item.symbol}</Text>
+                                                            </Group>
+                                                            <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                                                                {item.description}
+                                                            </Text>
+                                                        </div>
+                                                    }
+                                                    checked={selectedSymbols.has(item.symbol)}
+                                                    onChange={() => onToggleSymbol(item.symbol)}
+                                                    style={{ width: 'calc(33% - 16px)', alignItems: 'flex-start' }}
+                                                />
+                                            ))
+                                        )}
                                     </Group>
                                 </Accordion.Panel>
                             </Accordion.Item>

@@ -22,11 +22,9 @@ export function useDataViewer() {
     const fetchDrawings = useCallback(async (label: string) => {
         setLoading(true);
         try {
-            // Fetch all and filter client side (per original logic)
-            // Ideally backend supports filtering by label
-            const allDrawings = await apiClient<Drawing[]>('/api/drawings?limit=1000');
-            const filtered = allDrawings.filter(d => d.label === label);
-            setDrawings(filtered);
+            // Filter on backend to reduce data transfer
+            const labelDrawings = await apiClient<Drawing[]>(`/api/drawings?label=${encodeURIComponent(label)}&limit=100`);
+            setDrawings(labelDrawings);
             setLoading(false);
         } catch (err: any) {
             console.error("Failed to fetch drawings", err);
