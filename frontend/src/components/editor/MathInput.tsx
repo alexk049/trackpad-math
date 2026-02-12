@@ -80,8 +80,9 @@ export const MathInput = forwardRef<MathfieldElement, MathInputProps>(({
         style: {
             display: 'block',
             width: '100%',
-            fontSize: '2em',
-            padding: '10px',
+            fontSize: '1.75em',
+            minHeight: '2.5em',
+            padding: '8px',
             borderRadius: '8px',
             border: '1px solid var(--mantine-color-default-border)',
             ...style
