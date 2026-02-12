@@ -1,4 +1,4 @@
-import { AppShell, Group, Title, NavLink, Burger, useMantineTheme } from '@mantine/core';
+import { AppShell, Group, Title, Burger, useMantineTheme, Menu } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { IconSettings, IconSchool, IconPencil, IconDatabase, IconInfoCircle } from '@tabler/icons-react';
 import { useEffect } from 'react';
@@ -28,60 +28,103 @@ export default function MainLayout() {
         }
     }, [isMobile, opened]);
 
+    // Close menu when clicking or focusing anywhere outside the menu/burger
+    // This uses window-level capture to jump ahead of component-level event blocking
+    useEffect(() => {
+        if (!opened) return;
+
+        const handleInteraction = (event: Event) => {
+            const path = event.composedPath();
+
+            // We check if the interaction is with the Menu content or the Burger button
+            const isInsideUI = path.some(el => {
+                if (!(el instanceof HTMLElement)) return false;
+                return (
+                    el.closest('.mantine-Menu-dropdown') ||
+                    el.closest('.mantine-Burger-root')
+                );
+            });
+
+            if (!isInsideUI) {
+                // Use close directly
+                close();
+            }
+        };
+
+        window.addEventListener('pointerdown', handleInteraction, { capture: true });
+        window.addEventListener('focusin', handleInteraction, { capture: true });
+
+        return () => {
+            window.removeEventListener('pointerdown', handleInteraction, { capture: true });
+            window.removeEventListener('focusin', handleInteraction, { capture: true });
+        };
+    }, [opened, close]);
+
     return (
         <AppShell
             header={{ height: 60 }}
             padding="md"
-            aside={{
-                width: 250,
-                breakpoint: 'sm',
-                collapsed: { mobile: !opened, desktop: !opened },
-            }}
         >
             <AppShell.Header>
                 <Group h="100%" px="md" justify="space-between">
                     <Title order={3}>Trackpad Math</Title>
-                    <Burger
-                        mt={0}
+                    <Menu
+                        shadow="md"
+                        width={200}
                         opened={opened}
-                        onClick={toggle}
-                        size="sm"
-                    />
+                        position="bottom-end"
+                        transitionProps={{ transition: 'pop-top-right', duration: 150 }}
+                    >
+                        <Menu.Target>
+                            <Burger
+                                opened={opened}
+                                onClick={toggle}
+                                size="sm"
+                            />
+                        </Menu.Target>
+
+                        <Menu.Dropdown>
+                            <Menu.Label>Navigation</Menu.Label>
+                            <Menu.Item
+                                leftSection={<IconPencil size="1rem" stroke={1.5} />}
+                                color={isActive('editor') ? theme.primaryColor : undefined}
+                                onClick={() => { navigate('/editor'); close(); }}
+                            >
+                                Editor
+                            </Menu.Item>
+                            <Menu.Item
+                                leftSection={<IconSchool size="1rem" stroke={1.5} />}
+                                color={isActive('training') ? theme.primaryColor : undefined}
+                                onClick={() => { navigate('/training'); close(); }}
+                            >
+                                Training
+                            </Menu.Item>
+                            <Menu.Item
+                                leftSection={<IconDatabase size="1rem" stroke={1.5} />}
+                                color={isActive('data') ? theme.primaryColor : undefined}
+                                onClick={() => { navigate('/data'); close(); }}
+                            >
+                                Data
+                            </Menu.Item>
+                            <Menu.Divider />
+                            <Menu.Item
+                                leftSection={<IconSettings size="1rem" stroke={1.5} />}
+                                color={isActive('options') ? theme.primaryColor : undefined}
+                                onClick={() => { navigate('/options'); close(); }}
+                            >
+                                Options
+                            </Menu.Item>
+                            <Menu.Item
+                                leftSection={<IconInfoCircle size="1rem" stroke={1.5} />}
+                                color={isActive('about') ? theme.primaryColor : undefined}
+                                onClick={() => { navigate('/about'); close(); }}
+                            >
+                                About
+                            </Menu.Item>
+                        </Menu.Dropdown>
+                    </Menu>
                 </Group>
             </AppShell.Header>
-
-            <AppShell.Aside p="md">
-                <NavLink
-                    label="Editor"
-                    leftSection={<IconPencil size="1rem" stroke={1.5} />}
-                    active={isActive('editor')}
-                    onClick={() => navigate('/editor')}
-                />
-                <NavLink
-                    label="Options"
-                    leftSection={<IconSettings size="1rem" stroke={1.5} />}
-                    active={isActive('options')}
-                    onClick={() => navigate('/options')}
-                />
-                <NavLink
-                    label="Training"
-                    leftSection={<IconSchool size="1rem" stroke={1.5} />}
-                    active={isActive('training')}
-                    onClick={() => navigate('/training')}
-                />
-                <NavLink
-                    label="Data"
-                    leftSection={<IconDatabase size="1rem" stroke={1.5} />}
-                    active={isActive('data')}
-                    onClick={() => navigate('/data')}
-                />
-                <NavLink
-                    label="About"
-                    leftSection={<IconInfoCircle size="1rem" stroke={1.5} />}
-                    active={isActive('about')}
-                    onClick={() => navigate('/about')}
-                />
-            </AppShell.Aside>
 
             <AppShell.Main>
                 <Outlet />
