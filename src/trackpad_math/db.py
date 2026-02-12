@@ -94,7 +94,7 @@ class Database:
                 print(f"Seed file not found: {seed_file}")
                 return
 
-            with open(seed_file, "r") as f:
+            with open(seed_file, "r", encoding="utf-8") as f:
                 drawings_data = json.load(f)
 
             for d in drawings_data:
