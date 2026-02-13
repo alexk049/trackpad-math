@@ -1,5 +1,6 @@
-import { Center, Text, Button } from '@mantine/core';
-import { IconMicrophone } from '@tabler/icons-react';
+import { Center, Text, Button, Tooltip } from '@mantine/core';
+import { IconPencil } from '@tabler/icons-react';
+import classes from './EditorControls.module.css';
 
 interface EditorControlsProps {
     isPaused: boolean;
@@ -15,15 +16,21 @@ export function EditorControls({ isPaused, isRecording, onToggleRecording }: Edi
             ) : isRecording ? (
                 <Text c="red" size="sm" fs="italic">Recording... (Space to stop)</Text>
             ) : (
-                <Button
-                    size="xl"
-                    color="blue"
-                    leftSection={<IconMicrophone />}
-                    onClick={onToggleRecording}
-                    variant="light"
+                <Tooltip
+                    label="Use your trackpad to draw any mathematical symbol"
+                    position="top"
+                    withArrow
+                    openDelay={1000}
                 >
-                    Start Drawing (Space)
-                </Button>
+                    <Button
+                        size="xl"
+                        className={classes.magicButton}
+                        leftSection={<IconPencil size={20} />}
+                        onClick={onToggleRecording}
+                    >
+                        Draw Symbols
+                    </Button>
+                </Tooltip>
             )}
         </Center>
     );

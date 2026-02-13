@@ -1,0 +1,27 @@
+.magicButton {
+    background: linear-gradient(135deg, #0b5c9c 0%, #1e70b0 50%, #3284c4 100%) !important;
+    border: none !important;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 4px 15px rgba(11, 92, 156, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2) inset !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 0 30px !important;
+    height: 50px !important;
+    border-radius: 12px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    gap: 8px;
+}
+
+.magicButton:hover {
+    box-shadow: 0 8px 25px rgba(11, 92, 156, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.3) inset !important;
+    background: linear-gradient(135deg, #0b5c9c 0%, #207bc0 50%, #3a96db 100%) !important;
+}
+
+.magicButton:active {
+    transform: translateY(1px);
+}

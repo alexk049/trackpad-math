@@ -102,6 +102,7 @@ export default function EditorPage() {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.repeat) return;
+            if (!isRecording) return;
             if (e.key === 'Shift') {
                 executeCommand('moveToSuperscript');
             } else if (e.key === 'Control') {
@@ -110,6 +111,7 @@ export default function EditorPage() {
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
+            if (!isRecording) return;
             if (e.key === 'Shift' || e.key === 'Control') {
                 executeCommand('moveAfterParent');
             }
@@ -121,7 +123,7 @@ export default function EditorPage() {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [executeCommand]);
+    }, [isRecording, executeCommand]);
 
     // Cleanup recording on unload
     useEffect(() => {
