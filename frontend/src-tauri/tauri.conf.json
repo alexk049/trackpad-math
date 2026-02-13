@@ -46,5 +46,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "YOUR_PUBLIC_KEY_HERE",
+      "endpoints": [
+        "https://github.com/alexk049/trackpad-math/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

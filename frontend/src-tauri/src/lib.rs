@@ -201,6 +201,7 @@ pub fn run() {
             })
             // .level(log::LevelFilter::Info)
             .build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
         .manage(SidecarState::default())
         .manage(ConfigState { config: Mutex::new(AppConfig::default()) })
