@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Card, Group, ScrollArea, Table, Text, Title } from '@mantine/core';
+import { Button, Group, ScrollArea, Table, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { IconSchool } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
@@ -14,12 +14,11 @@ export interface Drawing {
 interface DataViewerProps {
     label: string;
     drawings: Drawing[];
-    onClose: () => void;
     onDeleteDrawings: (ids: string[]) => void;
     onTeach: () => void;
 }
 
-export function SymbolDataViewer({ label, drawings, onClose, onDeleteDrawings, onTeach }: DataViewerProps) {
+export function SymbolDataViewer({ label, drawings, onDeleteDrawings, onTeach }: DataViewerProps) {
     // Keep track of all selected IDs
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     // Keep track of the "primary" selected drawing for visualization
@@ -70,31 +69,29 @@ export function SymbolDataViewer({ label, drawings, onClose, onDeleteDrawings, o
     };
 
     return (
-        <Card withBorder style={{ width: 450, height: '100%', display: 'flex', flexDirection: 'column' }} p="md">
-            <Group justify="space-between" mb="md">
-                <Title order={4}>Data: {label}</Title>
-                <div style={{ flex: 1 }}></div> {/* Spacer */}
-                <ActionIcon onClick={onClose} variant="subtle" color="gray">X</ActionIcon>
-            </Group>
-
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
-                {/* Preview */}
+        <Group align="flex-start" wrap="nowrap">
+            <div style={{ width: 300, flexShrink: 0 }}>
                 {focusedDrawing && (
                     <StrokeCanvas points={focusedDrawing.points} />
                 )}
+            </div>
 
-                <Group justify="space-between">
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <Text size="sm" fw={500}>Symbol: {label}</Text>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+
                     <Button
                         onClick={onTeach}
                         leftSection={<IconSchool size={16} />}
                         size="xs"
                         variant="light"
+                        fullWidth
                     >
                         Train this symbol
                     </Button>
 
                     {selectedIds.size > 0 && (
-                        <Button color="red" variant="subtle" size="xs" onClick={() => {
+                        <Button color="red" variant="subtle" size="xs" fullWidth onClick={() => {
                             modals.openConfirmModal({
                                 title: 'Confirm Deletion',
                                 children: (
@@ -110,42 +107,42 @@ export function SymbolDataViewer({ label, drawings, onClose, onDeleteDrawings, o
                             Delete Selected {selectedIds.size > 1 ? `(${selectedIds.size})` : ''}
                         </Button>
                     )}
-                </Group>
-
-                {/* List */}
-                <ScrollArea style={{ flex: 1, borderTop: '1px solid var(--mantine-color-default-border)' }}>
-                    <Table striped highlightOnHover stickyHeader withTableBorder={false} verticalSpacing="xs" style={{ userSelect: 'none' }}>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Samples</Table.Th>
-                                <Table.Th style={{ width: 40 }}></Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {drawings.map(d => (
-                                <Table.Tr
-                                    key={d.id}
-                                    onMouseDown={(e) => {
-                                        if (e.shiftKey) {
-                                            e.preventDefault();
-                                        }
-                                    }}
-                                    onClick={(e) => handleRowClick(d, e)}
-                                    // Highlight if in selected set. 
-                                    // Maybe different color for focused? 
-                                    // For now just standard highlight for all selected.
-                                    bg={selectedIds.has(d.id) ? 'var(--mantine-color-blue-light)' : undefined}
-                                    style={{ cursor: 'pointer', userSelect: 'none' }}
-                                >
-                                    <Table.Td>{new Date(d.timestamp).toLocaleString()}</Table.Td>
-                                    <Table.Td>
-                                    </Table.Td>
+                </div>
+                {drawings.length === 0 ? (
+                    <Text c="dimmed">No drawings found for this symbol</Text>
+                ) : (
+                    <ScrollArea h={200} style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}>
+                        <Table striped highlightOnHover stickyHeader withTableBorder={false} verticalSpacing="xs" style={{ userSelect: 'none' }}>
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th>Samples</Table.Th>
+                                    <Table.Th style={{ width: 40 }}></Table.Th>
                                 </Table.Tr>
-                            ))}
-                        </Table.Tbody>
-                    </Table>
-                </ScrollArea>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {drawings.map(d => (
+                                    <Table.Tr
+                                        key={d.id}
+                                        onMouseDown={(e) => {
+                                            if (e.shiftKey) {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        onClick={(e) => handleRowClick(d, e)}
+                                        bg={selectedIds.has(d.id) ? 'var(--mantine-color-blue-light)' : undefined}
+                                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                                    >
+                                        <Table.Td>{new Date(d.timestamp).toLocaleString()}</Table.Td>
+                                        <Table.Td></Table.Td>
+                                    </Table.Tr>
+                                ))}
+                            </Table.Tbody>
+                        </Table>
+                    </ScrollArea>
+                )}
             </div>
-        </Card>
+
+
+        </Group>
     );
 }
