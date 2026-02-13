@@ -17,8 +17,8 @@ export function TrainingSelection({
     onStart
 }: TrainingSelectionProps) {
     return (
-        <Container size="sm" py="xl">
-            <Title mb="lg">Select Symbols to Train</Title>
+        <Container size="md" py="xl">
+            <Title order={2}>Select Symbols to Train</Title>
             <Stack>
                 <Button
                     size="lg"

@@ -15,10 +15,10 @@ export default function AboutPage() {
             <Stack gap="xl">
                 <Box>
                     <Group align="center" mb="xs">
-                        <ThemeIcon size={40} radius="md" variant="light" color="blue">
+                        <ThemeIcon size={32} radius="md" variant="light" color="blue">
                             <IconInfoCircle style={{ width: rem(24), height: rem(24) }} />
                         </ThemeIcon>
-                        <Title order={1}>About Trackpad Math</Title>
+                        <Title order={2}>About Trackpad Math</Title>
                     </Group>
                     <Text c="dimmed" size="lg" mb="md">
                         Version {version}

@@ -81,7 +81,7 @@ export default function OptionsPage() {
     }
 
     return (
-        <Container size="xl">
+        <Container size="md">
             <Title order={2} mb="lg">Options</Title>
 
             <Stack gap="lg">
@@ -131,8 +131,7 @@ export default function OptionsPage() {
                     <Text fw={500} mb="xs">Pause Threshold</Text>
                     <Text size="sm" c="dimmed" mb="md">Time to wait before processing a stroke (ms)</Text>
                     <Slider
-                        min={200} max={3000} step={50}
-                        value={settings.pause_threshold}
+                        min={200} max={2000} step={50}
                         defaultValue={settings.pause_threshold}
                         onChangeEnd={(val) => updateSettings({ pause_threshold: val })}
                         label={(val) => `${val}ms`}
@@ -143,7 +142,7 @@ export default function OptionsPage() {
                     <Text fw={500} mb="xs">Equation Scroll X Sensitivity</Text>
                     <Text size="sm" c="dimmed" mb="md">How fast the cursor moves horizontally when scrolling</Text>
                     <Slider
-                        min={1} max={100} step={1}
+                        min={5} max={100} step={5}
                         defaultValue={settings.equation_scroll_x_sensitivity}
                         onChangeEnd={(val) => updateSettings({ equation_scroll_x_sensitivity: val })}
                     />
@@ -153,7 +152,7 @@ export default function OptionsPage() {
                     <Text fw={500} mb="xs">Equation Scroll Y Sensitivity</Text>
                     <Text size="sm" c="dimmed" mb="md">How fast the cursor moves vertically when scrolling</Text>
                     <Slider
-                        min={1} max={100} step={1}
+                        min={5} max={100} step={5}
                         defaultValue={settings.equation_scroll_y_sensitivity}
                         onChangeEnd={(val) => updateSettings({ equation_scroll_y_sensitivity: val })}
                     />

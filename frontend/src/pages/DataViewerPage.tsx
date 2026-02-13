@@ -18,7 +18,7 @@ export default function DataPage() {
     const navigate = useNavigate();
 
     return (
-        <Container size="xl" h="calc(100vh - 100px)" style={{ display: 'flex', flexDirection: 'column' }} py="md">
+        <Container size="md" h="calc(100vh - 100px)" style={{ display: 'flex', flexDirection: 'column' }} py="md">
             <Group justify="space-between" mb="lg" align="center" onClick={(e) => e.stopPropagation()}>
                 <Title order={2}>Data</Title>
             </Group>
