@@ -46,9 +46,9 @@ export default function AboutPage() {
                                     <IconDeviceLaptop size={18} />
                                 </ThemeIcon>
                                 <Box>
-                                    <Text fw={600} mb={4}>Recording Pause</Text>
+                                    <Text fw={600} mb={4}>Recording</Text>
                                     <Text size="sm">
-                                        When hovering over the bottom part of the app while recording, recording will pause allowing you to select a correction or stop recording.
+                                        Press space to start and stop recording quickly. When hovering over the bottom part of the app while recording, recording will pause allowing you to select a correction or stop recording.
                                     </Text>
                                 </Box>
                             </Group>
@@ -90,7 +90,7 @@ export default function AboutPage() {
                                 <Box>
                                     <Text fw={600} mb={4}>Subscripts & Superscripts</Text>
                                     <Text size="sm">
-                                        Holding <strong>Shift</strong> makes you input into the <strong>superscript</strong>.
+                                        While recording, hold <strong>Shift</strong> to input into the <strong>superscript</strong>.
                                         Holding <strong>Ctrl</strong> makes you input into the <strong>subscript</strong>.
                                     </Text>
                                 </Box>
