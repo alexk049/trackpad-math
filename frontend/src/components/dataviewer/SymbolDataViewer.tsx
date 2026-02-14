@@ -1,6 +1,5 @@
 import { Button, Group, ScrollArea, Table, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
-import { IconSchool } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { StrokeCanvas } from '../StrokeCanvas';
 
@@ -82,7 +81,6 @@ export function SymbolDataViewer({ label, drawings, onDeleteDrawings, onTeach }:
 
                     <Button
                         onClick={onTeach}
-                        leftSection={<IconSchool size={16} />}
                         size="xs"
                         variant="light"
                         fullWidth

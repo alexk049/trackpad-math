@@ -1,6 +1,6 @@
 import { AppShell, Group, Title, Burger, useMantineTheme, Menu, ActionIcon, Tooltip } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
-import { IconSettings, IconSchool, IconPencil, IconDatabase, IconInfoCircle, IconDownload } from '@tabler/icons-react';
+import { IconSettings, IconGrain, IconPencil, IconDatabase, IconInfoCircle, IconDownload } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { check, Update } from '@tauri-apps/plugin-updater';
@@ -163,7 +163,7 @@ export default function MainLayout() {
                                     Editor
                                 </Menu.Item>
                                 <Menu.Item
-                                    leftSection={<IconSchool size={16} stroke={1.5} />}
+                                    leftSection={<IconGrain size={16} stroke={1.5} />}
                                     color={isActive('training') ? theme.primaryColor : undefined}
                                     onClick={() => { navigate('/training'); close(); }}
                                 >
