@@ -1,5 +1,5 @@
 import { Container, Title, Text, Paper, Stack, Group, ThemeIcon, rem, Box, SimpleGrid } from '@mantine/core';
-import { IconInfoCircle, IconLink, IconBulb, IconDeviceLaptop, IconArrowRight, IconKeyboard, IconCheck } from '@tabler/icons-react';
+import { IconInfoCircle, IconLink, IconBulb } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { getVersion } from '@tauri-apps/api/app';
 
@@ -18,7 +18,7 @@ export default function AboutPage() {
                         <ThemeIcon size={32} radius="md" variant="light" color="blue">
                             <IconInfoCircle style={{ width: rem(24), height: rem(24) }} />
                         </ThemeIcon>
-                        <Title order={2}>About Trackpad Math</Title>
+                        <Title order={2} pt={10}>About Trackpad Math</Title>
                     </Group>
                     <Text c="dimmed" size="lg" mb="md">
                         Version {version}
@@ -36,15 +36,12 @@ export default function AboutPage() {
                         <ThemeIcon size={32} radius="md" variant="light" color="yellow">
                             <IconBulb style={{ width: rem(20), height: rem(20) }} />
                         </ThemeIcon>
-                        <Title order={2}>Usage Tips</Title>
+                        <Title order={2} pt={10}>Usage Tips</Title>
                     </Group>
 
                     <Stack gap="md">
                         <Paper withBorder p="md" radius="md">
                             <Group align="flex-start" wrap="nowrap">
-                                <ThemeIcon color="blue" variant="light" mt={3}>
-                                    <IconDeviceLaptop size={18} />
-                                </ThemeIcon>
                                 <Box>
                                     <Text fw={600} mb={4}>Recording</Text>
                                     <Text size="sm">
@@ -56,9 +53,6 @@ export default function AboutPage() {
 
                         <Paper withBorder p="md" radius="md">
                             <Group align="flex-start" wrap="nowrap">
-                                <ThemeIcon color="green" variant="light" mt={3}>
-                                    <IconCheck size={18} />
-                                </ThemeIcon>
                                 <Box>
                                     <Text fw={600} mb={4}>Training Symbols</Text>
                                     <Text size="sm">
@@ -70,9 +64,6 @@ export default function AboutPage() {
 
                         <Paper withBorder p="md" radius="md">
                             <Group align="flex-start" wrap="nowrap">
-                                <ThemeIcon color="grape" variant="light" mt={3}>
-                                    <IconArrowRight size={18} />
-                                </ThemeIcon>
                                 <Box>
                                     <Text fw={600} mb={4}>Navigation</Text>
                                     <Text size="sm">
@@ -84,9 +75,6 @@ export default function AboutPage() {
 
                         <Paper withBorder p="md" radius="md">
                             <Group align="flex-start" wrap="nowrap">
-                                <ThemeIcon color="orange" variant="light" mt={3}>
-                                    <IconKeyboard size={18} />
-                                </ThemeIcon>
                                 <Box>
                                     <Text fw={600} mb={4}>Subscripts & Superscripts</Text>
                                     <Text size="sm">
