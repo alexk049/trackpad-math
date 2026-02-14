@@ -103,6 +103,7 @@ export default function EditorPage() {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.repeat) return;
             if (!isRecording) return;
+            focus();
             if (e.key === 'Shift') {
                 executeCommand('moveToSuperscript');
             } else if (e.key === 'Control') {
