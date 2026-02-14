@@ -131,7 +131,7 @@ export default function MainLayout() {
                                     color="blue"
                                     size="lg"
                                 >
-                                    {!downloading && <IconDownload size="1.2rem" />}
+                                    {!downloading && <IconDownload size={20} />}
                                 </ActionIcon>
                             </Tooltip>
                         )}
@@ -141,6 +141,9 @@ export default function MainLayout() {
                             opened={opened}
                             position="bottom-end"
                             transitionProps={{ transition: 'pop-top-right', duration: 150 }}
+                            styles={{
+                                itemLabel: { paddingTop: '5px' }
+                            }}
                         >
                             <Menu.Target>
                                 <Burger
@@ -153,21 +156,21 @@ export default function MainLayout() {
                             <Menu.Dropdown>
                                 <Menu.Label>Navigation</Menu.Label>
                                 <Menu.Item
-                                    leftSection={<IconPencil size="1rem" stroke={1.5} />}
+                                    leftSection={<IconPencil size={16} stroke={1.5} />}
                                     color={isActive('editor') ? theme.primaryColor : undefined}
                                     onClick={() => { navigate('/editor'); close(); }}
                                 >
                                     Editor
                                 </Menu.Item>
                                 <Menu.Item
-                                    leftSection={<IconSchool size="1rem" stroke={1.5} />}
+                                    leftSection={<IconSchool size={16} stroke={1.5} />}
                                     color={isActive('training') ? theme.primaryColor : undefined}
                                     onClick={() => { navigate('/training'); close(); }}
                                 >
                                     Training
                                 </Menu.Item>
                                 <Menu.Item
-                                    leftSection={<IconDatabase size="1rem" stroke={1.5} />}
+                                    leftSection={<IconDatabase size={16} stroke={1.5} />}
                                     color={isActive('data') ? theme.primaryColor : undefined}
                                     onClick={() => { navigate('/data'); close(); }}
                                 >
@@ -175,14 +178,14 @@ export default function MainLayout() {
                                 </Menu.Item>
                                 <Menu.Divider />
                                 <Menu.Item
-                                    leftSection={<IconSettings size="1rem" stroke={1.5} />}
+                                    leftSection={<IconSettings size={16} stroke={1.5} />}
                                     color={isActive('options') ? theme.primaryColor : undefined}
                                     onClick={() => { navigate('/options'); close(); }}
                                 >
                                     Options
                                 </Menu.Item>
                                 <Menu.Item
-                                    leftSection={<IconInfoCircle size="1rem" stroke={1.5} />}
+                                    leftSection={<IconInfoCircle size={16} stroke={1.5} />}
                                     color={isActive('about') ? theme.primaryColor : undefined}
                                     onClick={() => { navigate('/about'); close(); }}
                                 >
