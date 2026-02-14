@@ -101,6 +101,7 @@ export function SuggestionsBox({ candidates, onSelect, onConfirmRetrain, onClose
                         value={selectedSymbol}
                         style={{ width: 120 }}
                         autoFocus
+                        comboboxProps={{ zIndex: 10000, position: 'top' }}
                     />
                 ) : (
                     <Chip onClick={handleOtherClick} variant="light" checked={isOtherActive}>Other</Chip>
