@@ -53,7 +53,7 @@ export default function DataPage() {
                     variant="contained"
                 >
                     {filteredLabels.map((item) => (
-                        <Accordion.Item key={item.label} value={item.label}>
+                        <Accordion.Item key={item.label + item.description} value={item.label}>
                             <Accordion.Control>
                                 <Group justify="space-between" wrap="nowrap">
                                     <Group gap="sm">

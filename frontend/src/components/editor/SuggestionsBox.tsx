@@ -22,8 +22,7 @@ export function SuggestionsBox({ candidates, onSelect, onConfirmRetrain, onClose
             fetch(`${API_BASE_URL()}/api/labels`)
                 .then(res => res.json())
                 .then(data => {
-                    const sorted = data.map((d: any) => d.label).sort();
-                    const filtered = sorted.filter((label: string) => !candidates.some(c => c.symbol === label));
+                    const filtered = data.filter((label: string) => !candidates.some(c => c.symbol === label));
                     setAllSymbols(filtered);
                 })
                 .catch(err => console.error("Failed to fetch labels", err));

@@ -45,7 +45,7 @@ export default function EditorPage() {
 
     // Initial Data Fetch
     useEffect(() => {
-        apiClient<SymbolDefinition[]>('/api/labels')
+        apiClient<SymbolDefinition[]>('/api/symbol-metadata')
             .then((data) => setSymbols(data))
             .catch((err: any) => console.error('Error fetching symbols:', err));
     }, []);

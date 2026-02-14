@@ -60,6 +60,7 @@ CATEGORIZED_SYMBOLS = [
             {"latex": "-", "description": "Minus", "symbol": "-"},
             {"latex": "\\times", "description": "Multiplication", "symbol": "×"},
             {"latex": "\\div", "description": "Division", "symbol": "÷"},
+            {"latex": "/", "description": "Fraction", "symbol": "/"},
             {"latex": "=", "description": "Equality", "symbol": "="},
             {"latex": "\\neq", "description": "Inequality", "symbol": "≠"},
             {"latex": "<", "description": "Less than", "symbol": "<"},
@@ -242,26 +243,32 @@ def get_category_items(name: str):
             return cat["items"]
     raise HTTPException(status_code=404, detail="Category not found")
 
-@router.get("/api/labels")
-def get_labels(session: DBSession):
+@router.get("/api/symbol-metadata")
+def get_symbol_metadata(session: DBSession):
     """Get all unique labels and their counts, with descriptions."""
     results = session.query(Drawing.label, func.count(Drawing.id)).group_by(Drawing.label).all()
     data = {r[0]: r[1] for r in results}
 
     final_list = []
+    for cat in CATEGORIZED_SYMBOLS:
+        for item in cat["items"]:
+            final_list.append({
+                "label": item["symbol"],
+                "count": data.get(item["symbol"], 0),
+                "description": item.get("description", ""),
+                "latex": item.get("latex", "")
+            })
+    return final_list
+
+@router.get("/api/labels")
+def get_labels():
+    final_list = []
     seen = set()
     for cat in CATEGORIZED_SYMBOLS:
         for item in cat["items"]:
             if item["symbol"] not in seen:
-                final_list.append({
-                    "label": item["symbol"],
-                    "count": data.get(item["symbol"], 0),
-                    "description": item.get("description", ""),
-                    "latex": item.get("latex", "")
-                })
+                final_list.append(item["symbol"])
                 seen.add(item["symbol"])
-    
-    
     return final_list
 
 @router.get("/api/drawings")

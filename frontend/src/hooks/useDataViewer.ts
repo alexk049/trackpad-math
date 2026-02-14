@@ -11,7 +11,7 @@ export function useDataViewer() {
 
     const fetchLabels = useCallback(async () => {
         try {
-            const data = await apiClient<LabelData[]>('/api/labels');
+            const data = await apiClient<LabelData[]>('/api/symbol-metadata');
             setLabels(data);
         } catch (err: any) {
             console.error("Failed to fetch labels", err);
