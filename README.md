@@ -24,7 +24,12 @@ Trackpad Math is a desktop application that transforms your laptop trackpad into
 - **Cross Platform**: Available for Windows/MacOS/Linux. Designed specifically for standard laptop trackpads, no external drawing tablets or styluses required.
 - **Privacy-First & Offline**: All machine learning inference happens locally on your machine, ensuring your data never leaves your device and the app remains functional without an internet connection.
 - **Intuitive Controls**: Scroll left/right/up/down to move your cursor through the equation and make edits.
-- **Custom Training**: Teach the model your own handwriting style.
+- **Custom Training**: Teach the model your own handwriting style. For ease of use, model is pretrained with some basic math symbols.
+
+
+## 🎬 Demo
+
+https://github.com/user-attachments/assets/af6bae47-f41c-4465-a715-1eca91c62ea9
 
 ## 🚀 Quick Start (Development)
 
