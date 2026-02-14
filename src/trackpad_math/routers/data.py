@@ -249,14 +249,18 @@ def get_labels(session: DBSession):
     data = {r[0]: r[1] for r in results}
 
     final_list = []
+    seen = set()
     for cat in CATEGORIZED_SYMBOLS:
         for item in cat["items"]:
-            final_list.append({
-                "label": item["symbol"],
-                "count": data.get(item["symbol"], 0),
-                "description": item.get("description", ""),
-                "latex": item.get("latex", "")
-            })
+            if item["symbol"] not in seen:
+                final_list.append({
+                    "label": item["symbol"],
+                    "count": data.get(item["symbol"], 0),
+                    "description": item.get("description", ""),
+                    "latex": item.get("latex", "")
+                })
+                seen.add(item["symbol"])
+    
     
     return final_list
 
