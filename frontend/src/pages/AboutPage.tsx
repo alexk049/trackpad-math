@@ -18,7 +18,7 @@ export default function AboutPage() {
                         <ThemeIcon size={32} radius="md" variant="light" color="blue">
                             <IconInfoCircle style={{ width: rem(24), height: rem(24) }} />
                         </ThemeIcon>
-                        <Title order={2} pt={10}>About Trackpad Math</Title>
+                        <Title order={2}>About Trackpad Math</Title>
                     </Group>
                     <Text c="dimmed" size="lg" mb="md">
                         Version {version}
@@ -36,7 +36,7 @@ export default function AboutPage() {
                         <ThemeIcon size={32} radius="md" variant="light" color="yellow">
                             <IconBulb style={{ width: rem(20), height: rem(20) }} />
                         </ThemeIcon>
-                        <Title order={2} pt={10}>Usage Tips</Title>
+                        <Title order={2}>Usage Tips</Title>
                     </Group>
 
                     <Stack gap="md">

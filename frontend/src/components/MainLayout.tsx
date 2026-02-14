@@ -141,9 +141,6 @@ export default function MainLayout() {
                             opened={opened}
                             position="bottom-end"
                             transitionProps={{ transition: 'pop-top-right', duration: 150 }}
-                            styles={{
-                                itemLabel: { paddingTop: '5px' }
-                            }}
                         >
                             <Menu.Target>
                                 <Burger
