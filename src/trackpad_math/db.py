@@ -25,7 +25,7 @@ class DBSetting(Base):
     __tablename__ = "settings"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     auto_mode: Mapped[bool] = mapped_column(Boolean, default=True)
-    pause_threshold: Mapped[int] = mapped_column(Integer, default=1000)
+    pause_threshold: Mapped[int] = mapped_column(Integer, default=400)
     equation_scroll_x_sensitivity: Mapped[int] = mapped_column(Integer, default=20)
     equation_scroll_y_sensitivity: Mapped[int] = mapped_column(Integer, default=20)
 
