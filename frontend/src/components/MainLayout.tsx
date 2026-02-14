@@ -1,4 +1,4 @@
-import { AppShell, Group, Title, Burger, useMantineTheme, Menu, ActionIcon, Tooltip, Loader } from '@mantine/core';
+import { AppShell, Group, Title, Burger, useMantineTheme, Menu, ActionIcon, Tooltip } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { IconSettings, IconSchool, IconPencil, IconDatabase, IconInfoCircle, IconDownload } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
@@ -40,7 +40,7 @@ export default function MainLayout() {
         const checkForUpdates = async () => {
             try {
                 const updateResult = await check();
-                if (updateResult?.available) {
+                if (updateResult) {
                     setUpdate(updateResult);
                 }
             } catch (error) {
@@ -48,10 +48,12 @@ export default function MainLayout() {
             }
         };
 
-        checkForUpdates();
-        const interval = setInterval(checkForUpdates, 24 * 60 * 60 * 1000); // 24 hours
+        if (import.meta.env.PROD) {
+            checkForUpdates();
+            const interval = setInterval(checkForUpdates, 24 * 60 * 60 * 1000); // 24 hours
 
-        return () => clearInterval(interval);
+            return () => clearInterval(interval);
+        }
     }, []);
 
     const startUpdate = async () => {
