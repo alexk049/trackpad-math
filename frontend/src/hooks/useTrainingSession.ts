@@ -32,7 +32,7 @@ const initialState: TrainingState = {
     currentSymbolIndex: 0,
     recordCount: 0,
     lastRecording: null,
-    samplesPerSymbol: 3,
+    samplesPerSymbol: 5,
 };
 
 function reducer(state: TrainingState, action: Action): TrainingState {
