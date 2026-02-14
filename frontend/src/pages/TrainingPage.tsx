@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Center, Loader, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { apiClient } from '../api/client';
@@ -19,6 +19,7 @@ export default function TrainingPage() {
     const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
     const session = useTrainingSession();
     const { isRecording, recordedPoints, toggleRecording } = useRecorder(true);
+    const navigate = useNavigate();
 
     // Initial URL param handling
     useEffect(() => {
@@ -106,6 +107,8 @@ export default function TrainingPage() {
                 onToggleSymbol={session.toggleSymbol}
                 onToggleCategory={session.toggleCategory}
                 onStart={session.startTraining}
+                samplesPerSymbol={session.state.samplesPerSymbol}
+                onSamplesChange={session.setSamplesPerSymbol}
             />
         );
     }
@@ -130,6 +133,7 @@ export default function TrainingPage() {
             <TrainingCompletion
                 count={session.state.trainingQueue.length}
                 onTrainMore={session.restart}
+                onGoToEditor={() => navigate('/editor')}
             />
         );
     }

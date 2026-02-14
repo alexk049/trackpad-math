@@ -8,8 +8,9 @@ export interface TrainingState {
     selectedSymbols: Set<string>;
     trainingQueue: string[];
     currentSymbolIndex: number;
-    recordCount: number; // 0, 1, 2
+    recordCount: number;
     lastRecording: any[] | null;
+    samplesPerSymbol: number;
 }
 
 // Action Types
@@ -18,12 +19,11 @@ type Action =
     | { type: 'TOGGLE_CATEGORY'; symbols: string[]; checked: boolean }
     | { type: 'START_TRAINING' }
     | { type: 'RESTART' }
-    | { type: 'NEXT_RECORDING'; recording: any[] } // Temporary holding for display? No, logic is complex.
-    // Simplifying: The hook should expose helpers, but maybe state is enough.
     | { type: 'SET_LAST_RECORDING'; points: any[] | null }
-    | { type: 'NEXT_STEP_RECORDING' } // Advance counter/index
+    | { type: 'NEXT_STEP_RECORDING' }
     | { type: 'FINISH_SESSION' }
     | { type: 'INIT_TRAINING'; symbols: string[] }
+    | { type: 'SET_SAMPLES_PER_SYMBOL'; count: number }
 
 const initialState: TrainingState = {
     step: 'selection',
@@ -32,6 +32,7 @@ const initialState: TrainingState = {
     currentSymbolIndex: 0,
     recordCount: 0,
     lastRecording: null,
+    samplesPerSymbol: 3,
 };
 
 function reducer(state: TrainingState, action: Action): TrainingState {
@@ -62,15 +63,14 @@ function reducer(state: TrainingState, action: Action): TrainingState {
             };
         }
         case 'RESTART': {
-            return { ...initialState, selectedSymbols: new Set() }; // Or keep selection? User logic was "Train More -> setStep(1), selected empty"
+            return { ...initialState, samplesPerSymbol: state.samplesPerSymbol, selectedSymbols: new Set() };
         }
         case 'SET_LAST_RECORDING': {
             return { ...state, lastRecording: action.points };
         }
         case 'NEXT_STEP_RECORDING': {
-            // Logic: 0 -> 1 -> 2 -> Next Symbol -> Finish
             const nextCount = state.recordCount + 1;
-            if (nextCount < 3) {
+            if (nextCount < state.samplesPerSymbol) {
                 return { ...state, recordCount: nextCount, lastRecording: null };
             } else {
                 // Next symbol?
@@ -100,6 +100,9 @@ function reducer(state: TrainingState, action: Action): TrainingState {
                 lastRecording: null,
             };
         }
+        case 'SET_SAMPLES_PER_SYMBOL': {
+            return { ...state, samplesPerSymbol: action.count };
+        }
         default:
             return state;
     }
@@ -125,7 +128,6 @@ export function useTrainingSession() {
     }, []);
 
     const initTraining = useCallback((symbols: string[]) => {
-        // We need a new action type that sets selection AND starts
         dispatch({ type: 'INIT_TRAINING', symbols });
     }, []);
 
@@ -133,17 +135,18 @@ export function useTrainingSession() {
         dispatch({ type: 'SET_LAST_RECORDING', points });
     }, []);
 
-    // Encapsulate specific "Next" logic that involves API? 
-    // The hook should probably just manage state. The Page can call the API.
-    // But to update the counter, we need an action.
     const advanceProgress = useCallback(() => {
         dispatch({ type: 'NEXT_STEP_RECORDING' });
     }, []);
 
+    const setSamplesPerSymbol = useCallback((count: number) => {
+        dispatch({ type: 'SET_SAMPLES_PER_SYMBOL', count });
+    }, []);
+
     // Derived state helpers
     const currentSymbol = state.trainingQueue[state.currentSymbolIndex];
-    const isLastSample = state.recordCount === 2 && state.currentSymbolIndex === state.trainingQueue.length - 1;
-    const progressLabel = `${state.recordCount + 1}/3`;
+    const isLastSample = state.recordCount === state.samplesPerSymbol - 1 && state.currentSymbolIndex === state.trainingQueue.length - 1;
+    const progressLabel = `${state.recordCount + 1}/${state.samplesPerSymbol}`;
 
     return {
         state,
@@ -154,6 +157,7 @@ export function useTrainingSession() {
         setLastRecording,
         advanceProgress,
         initTraining,
+        setSamplesPerSymbol,
         // Helpers
         currentSymbol,
         isLastSample,

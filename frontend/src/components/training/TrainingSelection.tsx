@@ -1,4 +1,4 @@
-import { Container, Title, Stack, Button, Accordion, Group, Text, Checkbox, Center, Loader } from '@mantine/core';
+import { Container, Title, Stack, Button, Accordion, Group, Text, Checkbox, Center, Loader, NumberInput } from '@mantine/core';
 import type { Category } from '../../types';
 
 interface TrainingSelectionProps {
@@ -7,6 +7,8 @@ interface TrainingSelectionProps {
     onToggleSymbol: (symbol: string) => void;
     onToggleCategory: (symbols: string[], checked: boolean) => void;
     onStart: () => void;
+    samplesPerSymbol: number;
+    onSamplesChange: (count: number) => void;
 }
 
 export function TrainingSelection({
@@ -14,20 +16,34 @@ export function TrainingSelection({
     selectedSymbols,
     onToggleSymbol,
     onToggleCategory,
-    onStart
+    onStart,
+    samplesPerSymbol,
+    onSamplesChange
 }: TrainingSelectionProps) {
     return (
         <Container size="md" py="xl">
-            <Title order={2}>Select Symbols to Train</Title>
+            <Group justify="space-between" align="center" mb="xl">
+                <Title order={2}>Select Symbols to Train</Title>
+                <Group align="center" gap="sm">
+                    <Text size="sm" fw={500}>Samples per symbol:</Text>
+                    <NumberInput
+                        value={samplesPerSymbol}
+                        onChange={(val) => onSamplesChange(Number(val))}
+                        min={1}
+                        max={20}
+                        w={70}
+                    />
+                </Group>
+            </Group>
             <Stack>
                 <Button
                     size="lg"
                     onClick={onStart}
                     disabled={selectedSymbols.size === 0}
-                    mt="xl"
+                    mb="xl"
                     fullWidth
                 >
-                    Start Training ({selectedSymbols.size} symbols)
+                    Start Training ({selectedSymbols.size} symbols × {samplesPerSymbol} samples)
                 </Button>
 
                 <Accordion multiple variant="separated">
